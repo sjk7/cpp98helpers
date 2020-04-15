@@ -2,6 +2,7 @@ os: windows
 
 language: c++
 
-c++: ./build.bat
+script:
+  - ./build.bat
 
 
