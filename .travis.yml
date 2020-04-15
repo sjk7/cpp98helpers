@@ -22,8 +22,10 @@ global:
 language: c++
 os: windows
 script: 
+  - "echo path is: $PATH"
   - "export PATH=$MSBUILD_PATH:$PATH"
   - "export PATH=$MSYS_PATH:$PATH"
+  - "echo path is: $PATH"
   - "echo \"Building, from build.bat ...\""
   - ./build.bat
   - "echo \"Build complete.\""
