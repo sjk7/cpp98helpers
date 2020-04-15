@@ -11,6 +11,7 @@ script:
 
 
 env:
+  - MSYS2PATH="/C/tools/msys64"
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
@@ -20,7 +21,9 @@ env:
 before_install:
  - echo "Installing MSYS2 for Windows"
  - choco install MSYS2
- - bash -l -c echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+ - msys2.exe echo  -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN #CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-
+
+# - bash -l -c echo  sed -ne '/-BEGIN #CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 addons:
 
