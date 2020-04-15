@@ -9,11 +9,12 @@ addons:
       description: stuff
       name: sjk7/cpp98helpers
 before_install: 
-  - "echo \"Installing MSYS2 for Windows\""
-  - "choco install msys2"
-  - "export PATH=\"/C/tools/msys64\":$PATH"
-  - "cmd //c \"RefreshEnv.cmd\""
-  - "msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
+#  - "echo \"Installing MSYS2 for Windows\""
+#  - "choco install msys2"
+#  - "export PATH=\"/C/tools/msys64\":$PATH"
+ # - "cmd //c \"RefreshEnv.cmd\""
+ - openssl -V
+ - "echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
 env: ~
 global: 
   - 
