@@ -16,8 +16,7 @@ before_install:
   - "msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
 env: ~
 global: 
-  - 
-    secure: BzrmpxkeFnHdzSvPgwLkse3CLn0638i7DY/cs7IHgAcs+L4gL1LiuRPFwvLXl3FY3AWH4WdfqX9whC4AMylZ23R4+T3+V6jkoJuCWca7q3tmPwXjg0r7o1beYMGOEijfQkhOty44Op039dHmiM1j5LxJi2VLDc5xdXJucwhd+fSgERjCB/0hh52ILm/jYfCfKfWCTxWQiXdsAa+H461oMHqNoc+dyIRfja1Lc8eLXCEQgr0DDh1amtOJSUGulaKXZnabxTUftkJMf3H+F5AO8Q/q7KBdzY26ZHa+XiKKb873uSqodKlWKVrYUkyDHcC1GfP+Gsl9bgVSzFkQ96l9Ger6NkpVDcThN8pAa3MQzeECvk6IzZXnfMb8QcDlq3ODnY0v5pmFUEmQt7KqFQ5psG0DcP7Fb8wV+5pFsoMlEbc8bopSU528TCnf/jgb2ktGKryzyJh2uKE0tgXEhjdHg1m+oTd4S7smCldgLxZkXaP6jVav7BQosOOKnnA+JEPiwLDVozM8FyucCDGi7jICRDQRSSsb7urTSaljnJay9bqEXuv8GyIDWk9voIVydDm/2l97YwAE9v1utZgUNFxqpYpftGy0fcdiVZDpFJ+34BHCvlTx7ZpCXpizJOkmhme5yvAPrdBnDg4JaAqorQc0zBMdB1i47HyylGBnOSIiMns=
+  - secure: BzrmpxkeFnHdzSvPgwLkse3CLn0638i7DY/cs7IHgAcs+L4gL1LiuRPFwvLXl3FY3AWH4WdfqX9whC4AMylZ23R4+T3+V6jkoJuCWca7q3tmPwXjg0r7o1beYMGOEijfQkhOty44Op039dHmiM1j5LxJi2VLDc5xdXJucwhd+fSgERjCB/0hh52ILm/jYfCfKfWCTxWQiXdsAa+H461oMHqNoc+dyIRfja1Lc8eLXCEQgr0DDh1amtOJSUGulaKXZnabxTUftkJMf3H+F5AO8Q/q7KBdzY26ZHa+XiKKb873uSqodKlWKVrYUkyDHcC1GfP+Gsl9bgVSzFkQ96l9Ger6NkpVDcThN8pAa3MQzeECvk6IzZXnfMb8QcDlq3ODnY0v5pmFUEmQt7KqFQ5psG0DcP7Fb8wV+5pFsoMlEbc8bopSU528TCnf/jgb2ktGKryzyJh2uKE0tgXEhjdHg1m+oTd4S7smCldgLxZkXaP6jVav7BQosOOKnnA+JEPiwLDVozM8FyucCDGi7jICRDQRSSsb7urTSaljnJay9bqEXuv8GyIDWk9voIVydDm/2l97YwAE9v1utZgUNFxqpYpftGy0fcdiVZDpFJ+34BHCvlTx7ZpCXpizJOkmhme5yvAPrdBnDg4JaAqorQc0zBMdB1i47HyylGBnOSIiMns=
   - "MSBUILD_PATH=\\\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\\\" MSYS_PATH=\"/C/tools/msys64\""
 language: c++
 os: windows
