@@ -11,7 +11,7 @@ addons:
 before_install: 
   - "echo \"Installing MSYS2 for Windows\""
   - "choco install msys2"
-  - "export PATH=$MSYS_PATH:$PATH"
+  - "export PATH=\"/C/tools/msys64\":$PATH"
   - "cmd //c \"RefreshEnv.cmd\""
   - "msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
 env: ~
@@ -22,10 +22,8 @@ global:
 language: c++
 os: windows
 script: 
-  - "echo path is: $PATH"
-  - "export PATH=$MSBUILD_PATH:$PATH"
-  - "export PATH=$MSYS_PATH:$PATH"
-  - "echo path is: $PATH"
+  - "export PATH=\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\":$PATH"
+  - "export PATH=\"/C/tools/msys64\":$PATH"
   - "echo \"Building, from build.bat ...\""
   - ./build.bat
   - "echo \"Build complete.\""
