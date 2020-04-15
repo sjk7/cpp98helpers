@@ -10,7 +10,7 @@ addons:
       name: sjk7/cpp98helpers
 before_install: 
   - "echo \"Installing MSYS2 for Windows\""
-  - "choco install msys2-installer"
+  - "choco install msys2"
   - "export PATH=$MSYS_PATH:$PATH"
   - "cmd //c \"RefreshEnv.cmd\""
   - "msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
