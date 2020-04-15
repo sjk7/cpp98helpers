@@ -1,7 +1,17 @@
 os: windows
 language: c++
 
-install: choco install openssh --version=1.0.0.20180202
+install: 
+ - cmd.exe /c echo "Installing OpenSSH for Windows"
+ - choco install openssh --version=1.0.0.20180202
+ - cmd.exe /c echo "Installing sed for Windows"
+ - choco install sed
+ - cmd.exe /c echo "Installing wget for Windows ..."
+ - choco install wget
+ - cmd.exe /c echo "Installing linux utils for windows.."
+ - choco install gnuwin
+ - cmd.exe /c "Choco installs all complete."
+ 
 
 env:
   - MSBUILD_PATH="/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin"
