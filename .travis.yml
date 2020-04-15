@@ -20,7 +20,7 @@ env:
 before_install:
  - echo "Installing OpenSSH for Windows"
  - choco install openssh --version=1.0.0.20180202
- - refreshenv
+ - powershell refreshenv
  - echo "Installing sed for Windows"
  - choco install sed
  - echo "Installing wget for Windows ..."
