@@ -6,8 +6,8 @@ addons:
     build_command_prepend: ""
     notification_email: radiowebmasters@gmail.com
     project: 
-      description: stuff
-      name: sjk7/cpp98helpers
+    name: sjk7/cpp98helpers
+
 before_install: 
   - "ssh -V"
   - "true | openssl s_client -connect scan.coverity.com:443 | openssl x509 | tee -a /mingw64/ssl/certs/ca-certificates.crt"
