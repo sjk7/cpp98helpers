@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29418.71
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SPSCAudio", "SPSCAudio.vcxproj", "{602322DF-7EAB-42C7-8295-A819B8AF3D66}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Debug|x64.ActiveCfg = Debug|x64
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Debug|x64.Build.0 = Debug|x64
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Debug|x86.ActiveCfg = Debug|Win32
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Debug|x86.Build.0 = Debug|Win32
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Release|x64.ActiveCfg = Release|x64
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Release|x64.Build.0 = Release|x64
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Release|x86.ActiveCfg = Release|Win32
+		{602322DF-7EAB-42C7-8295-A819B8AF3D66}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6D855EF0-C180-4FEF-AF85-E66A3DF6FDF6}
+	EndGlobalSection
+EndGlobal
