@@ -6,8 +6,8 @@ addons:
     build_command_prepend: ""
     notification_email: radiowebmasters@gmail.com
     project: 
-    name: sjk7/cpp98helpers
-
+      description: stuff
+      name: sjk7/cpp98helpers
 before_install: 
   - "ssh -V"
   - "true | openssl s_client -connect scan.coverity.com:443 | openssl x509 | tee -a /mingw64/ssl/certs/ca-certificates.crt"
@@ -27,5 +27,3 @@ script:
   - "echo \"Building, from build.bat ...\""
   - ./build.bat
   - "echo \"Build complete.\""
-
-
