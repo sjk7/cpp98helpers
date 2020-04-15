@@ -3,6 +3,7 @@ language: c++
 
 env:
   - MSBUILD_PATH="/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin"
+  
 
 script:
   - export PATH=$MSBUILD_PATH:$PATH
@@ -11,6 +12,7 @@ script:
 
 
 env:
+ - MSYS_PATH="/C/tools/msys64"
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
@@ -21,7 +23,8 @@ before_install:
  - echo "Installing MSYS2 for Windows"
  - choco install MSYS2
  - cmd //c "RefreshEnv.cmd"
- - C:\\tools\\msys64\\msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-
+ - export PATH=$MSYS_PATH:$PATH
+ - msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-
 
 
 addons:
