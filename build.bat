@@ -1,1 +1,1 @@
-  cmd.exe /C "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe"  /p:Platform=x86 /p:Configuration=Release /p:RunCodeAnalysis=False SPSCAudio.sln  
+  cmd.exe /C "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild.exe"  /p:Platform=x86 /p:Configuration=Release /p:RunCodeAnalysis=False SPSCAudio.sln  
