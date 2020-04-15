@@ -14,7 +14,7 @@ before_install:
 #  - "export PATH=\"/C/tools/msys64\":$PATH"
  # - "cmd //c \"RefreshEnv.cmd\""
  - ssh -V
- - true | openssl s_client -connect scan.coverity.com:443 | openssl x509 | tee -a /etc/ssl/certs/ca-certificates.crt
+ - true | openssl s_client -connect scan.coverity.com:443 | openssl x509 | tee -a /mingw64/ssl/certs/ca-certificates.crt
 
 env: ~
 global: 
