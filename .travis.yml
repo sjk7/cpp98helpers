@@ -14,7 +14,8 @@ before_install:
 #  - "export PATH=\"/C/tools/msys64\":$PATH"
  # - "cmd //c \"RefreshEnv.cmd\""
  - ssh -V
- - "echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
+ - true | openssl s_client -connect scan.coverity.com:443 | openssl x509 | tee -a /etc/ssl/certs/ca-certificates.crt
+
 env: ~
 global: 
   - secure: "TJgGz9LWk04PWtQ9rGJCA6iV/UFeVib38R3mb9Zp2M1DJHeJ8jUWJF21c4ZW2WZAQ+/8TmfLeGcbkbK4KB1BTSxJK9JO2WP35dr0qd2tTkPgKhBZdtLh8X4G1/cF4Mf7rCRJXtCF3GLVzq0WWis0803oUiUioje3Zur+4DaVKeFjgMHpXmPgdWI87+qh1v3j1+ySRP39Wn6vR7E28gToNcdAr8RGuyJe9lkJtMVKdN+lnXP5xpii7pCBkKQcDsVJt1hPN7Em1HoQUYU8o6TZcJOdAG3NH67Iydi085U4poLgjAnyVTJpsZhcKo3pKoeCqcdopdUJh7Fe9FpfJ/phbItCyqkmkiz5fKiuHC+MY5scE2hbHNmIVWb89E1S1DbMqGpGp87JeqwZWivZSIYfB8d7PPXmDTP0X89w9nfLF5S2jh9oeEJYEqDzr8mfsdTZoKVdMZJtliPwgfdEfPsiOxeygo7wOVbpgglti2W9pJqMQ1/L58/FdytlCxlaEXOEcLDYQ9n/wiOAhlz5wFrBt9RNLju9mKS46/f0KMdM5/IZ3EFrZLcI8FUZlKRvMo7wUqTqiGF0XuTiYED8B3WB8ltH4613nEz4/waS4+kSjVEBUKjL3XaRyRow0gWnFa81Juj2jnbQj2UoUMq+0PMrY75Hkgv3T5FEAy2HoaL7AIk="
