@@ -7,7 +7,6 @@
 // SPSCAudio.cpp
 
 #include <iostream>
-#include <Windows.h>
 #include "my_concurrent.h"
 
 namespace numbers {
