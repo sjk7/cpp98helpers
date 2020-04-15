@@ -21,9 +21,8 @@ before_install:
  - echo "Installing MSYS2 for Windows"
  - choco install MSYS2
  - cmd //c "RefreshEnv.cmd"
- - /C/tools/msys64/msys2.exe echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN #CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-
+ - /C/tools/msys64/msys2_shell -defterm -no-start "echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN #CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
 
-# - bash -l -c echo  sed -ne '/-BEGIN #CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 addons:
 
