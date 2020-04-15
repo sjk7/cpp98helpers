@@ -15,7 +15,7 @@ before_install:
   - "cmd //c \"RefreshEnv.cmd\""
   - "msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-"
 env: 
-  - "MSBUILD_PATH=\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\"" - MSYS_PATH="/C/tools/msys64"
+  - "MSBUILD_PATH=\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\"" MSYS_PATH="/C/tools/msys64"
  
 global: 
   - 
