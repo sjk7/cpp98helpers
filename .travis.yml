@@ -5,6 +5,7 @@ env:
 
 script:
   - export PATH=$MSBUILD_PATH:$PATH
+  - cmd.exe /c wsl
   - ./build.bat
 
 
