@@ -1,8 +1,7 @@
 os: windows
 
-language: custom
+language: c++
 
-custom:
- - ./build.bat
+c++: ./build.bat
 
 
