@@ -20,10 +20,10 @@ env:
 
 
 before_install:
+ - export PATH=$MSYS_PATH:$PATH
  - echo "Installing MSYS2 for Windows"
  - choco install MSYS2
  - cmd //c "RefreshEnv.cmd"
-#- export PATH=$MSYS_PATH:$PATH
  - msys2_shell -defterm -no-start echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | tee -a /usr/ssl/certs/ca-
 
 
