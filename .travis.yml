@@ -7,8 +7,10 @@ env:
 
 script:
   - export PATH=$MSBUILD_PATH:$PATH
-  - cmd.exe /c echo "Building ..."
+  - export PATH=$MSYS_PATH:$PATH
+  - echo "Building, from build.bat ..."
   - ./build.bat
+  - echo "Build complete."
 
 
 env:
