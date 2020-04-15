@@ -18,17 +18,11 @@ env:
 
 
 before_install:
- - echo "Installing OpenSSH for Windows"
- - choco install openssh --version=1.0.0.20180202
- - powershell refreshenv
- - echo "Installing sed for Windows"
- - choco install sed
- - echo "Installing wget for Windows ..."
- - choco install wget
- - echo "Installing linux utils for windows.."
-#- choco install gnuwin
- - echo "Choco installs all complete."
-  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+ - echo "Installing MSYS2 for Windows"
+ - choco install MSYS2
+ - echo "MSYS2 install complete"
+
+  - bash -l -c echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 addons:
 
