@@ -3,7 +3,7 @@ addons:
   coverity_scan: 
     branch_pattern: coverity_scan
     build_command: ./build.bat
-    build_command_prepend: "msbuild /t:Clean"
+    build_command_prepend: ""
     notification_email: radiowebmasters@gmail.com
     project: 
       description: stuff
