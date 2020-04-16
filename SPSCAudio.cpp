@@ -122,7 +122,7 @@ template <size_t SIZE> class spsc {
             if (finish > end()) {
                 xtra = finish - end();
                 sz -= xtra;
-                assert(sz >= 0);
+                assert(sz <= lenb);
             }
             memcpy(write_ptr, data, sz);
             if (xtra) {

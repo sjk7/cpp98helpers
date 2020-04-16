@@ -1,4 +1,6 @@
 --- 
+version: ~> 1.0
+
 addons: 
   coverity_scan: 
     branch_pattern: coverity_scan
@@ -13,10 +15,9 @@ before_install:
   - "true | openssl s_client -connect scan.coverity.com:443 | openssl x509 | tee -a /mingw64/ssl/certs/ca-certificates.crt"
 
 env:
-
-global: 
-  - secure: pl5QA9AMr+Urv9d5K/wPAVN2XtY3K6SfoKyJu93YfPEWpcnUTpblT3ZcS0sqcBBzmtBDv6Yi8IqDyf5bxkipx2tkiihmeMAKv3VpeVenUqhPKK13kgh7UC+x2FLnpL//MyNHdvav6uIfLWkUHOddcCly+oAJoU5isWVh0D5t+8K4z4YbMTEjXRVew19FV+zDvWjvj5vP4K2T5K4tnbS4rvOPCueoNArL0xN4rHlt6yJbyVl/B2Ox48CU7+SaHgAlTvdnEsVD7fD1lAidvRmg9tN9ybOh/TuOIcYWqUHqN+lxjMz1hasUDCl62BO1QhhjvwjLHWtg41myXcq4UwkfWg+YZzPddXAht7usCGJHTU/DAewf40dkwiVFH10fLcAr2eNL3DOPyWQdBMLWRHsXPivFIJSpFq0xv21ktuuZjebT5aIt7ogFKxdvzJ5CjomojuoUZeAz2hxhEYogZus3wmw+oUfcwKHtrqeIkuvHHjGe74VOqJQq4yB5/1kNplKaP11k6x3s/F2VKzMgQaas75oevQa5s+ZUUpI2D0jWPMq4XNkUm9J/ACwIIl0I/rwBrdDzVJiEuogCDcYFK8f+QHwdeQyMcLM2PTNG7fCY0rNDsGAjyIACAWKnFoTeOGvhIPkaWj61cN4neQUbNGhztVB3+EbpETAif8UyCDVS+Mg=
-  - "MSBUILD_PATH=\\\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\\\" MSYS_PATH=\"/C/tools/msys64\""
+ global: 
+ - secure: pl5QA9AMr+Urv9d5K/wPAVN2XtY3K6SfoKyJu93YfPEWpcnUTpblT3ZcS0sqcBBzmtBDv6Yi8IqDyf5bxkipx2tkiihmeMAKv3VpeVenUqhPKK13kgh7UC+x2FLnpL//MyNHdvav6uIfLWkUHOddcCly+oAJoU5isWVh0D5t+8K4z4YbMTEjXRVew19FV+zDvWjvj5vP4K2T5K4tnbS4rvOPCueoNArL0xN4rHlt6yJbyVl/B2Ox48CU7+SaHgAlTvdnEsVD7fD1lAidvRmg9tN9ybOh/TuOIcYWqUHqN+lxjMz1hasUDCl62BO1QhhjvwjLHWtg41myXcq4UwkfWg+YZzPddXAht7usCGJHTU/DAewf40dkwiVFH10fLcAr2eNL3DOPyWQdBMLWRHsXPivFIJSpFq0xv21ktuuZjebT5aIt7ogFKxdvzJ5CjomojuoUZeAz2hxhEYogZus3wmw+oUfcwKHtrqeIkuvHHjGe74VOqJQq4yB5/1kNplKaP11k6x3s/F2VKzMgQaas75oevQa5s+ZUUpI2D0jWPMq4XNkUm9J/ACwIIl0I/rwBrdDzVJiEuogCDcYFK8f+QHwdeQyMcLM2PTNG7fCY0rNDsGAjyIACAWKnFoTeOGvhIPkaWj61cN4neQUbNGhztVB3+EbpETAif8UyCDVS+Mg=
+ - "MSBUILD_PATH=\\\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\\\" MSYS_PATH=\"/C/tools/msys64\""
 
 language: cpp
 
