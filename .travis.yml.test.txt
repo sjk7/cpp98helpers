@@ -1,0 +1,16 @@
+os: windows
+
+language: c++
+
+install: choco install openssh --version=1.0.0.20180202
+
+env:
+  - MSBUILD_PATH="/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin"
+
+script:
+  - export PATH=$MSBUILD_PATH:$PATH
+  - ./build.bat
+
+
+
+
