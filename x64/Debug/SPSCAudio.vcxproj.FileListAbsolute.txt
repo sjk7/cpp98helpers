@@ -1,0 +1,2 @@
+V:\shared\Docs\cpp98helpers\x64\Debug\SPSCAudio.exe
+V:\shared\Docs\cpp98helpers\x64\Debug\SPSCAudio.pdb

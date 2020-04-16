@@ -23,6 +23,12 @@
     <ClInclude Include="my_concurrent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Win32Trace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="my_spsc_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="SPSCAudio.ruleset" />

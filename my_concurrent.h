@@ -15,8 +15,13 @@
 #ifndef PLS_NO_WINDOWS_H
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <mmsystem.h>
 #endif
 #include <assert.h>
+
+#ifndef TRACE
+#define TRACE printf
+#endif
 
 #if _MSC_VER > 1899
 #define MY_NO_EXCEPT noexcept
@@ -116,6 +121,23 @@ static const DWORD MY_INFINITY = 30000;
 static const DWORD MY_INFINITY = INFINITE;
 #endif
 
+struct event {
+    NO_COPY_CLASS(event);
+
+    explicit event(LPSECURITY_ATTRIBUTES lpEventAttributes = 0,
+        BOOL bManualReset = 0, BOOL bInitialState = 0, TCHAR* lpName = 0)
+        : m_h(CreateEvent(
+            lpEventAttributes, bManualReset, bInitialState, lpName)) {}
+
+    inline operator HANDLE() { return m_h; }
+    ~event() {
+        CloseHandle(m_h);
+        m_h = 0;
+    }
+
+    private:
+    HANDLE m_h;
+};
 template <typename CRTP> class thread {
 
     static DWORD WINAPI thread_proc(_In_ LPVOID p) {
@@ -125,22 +147,41 @@ template <typename CRTP> class thread {
 
     DWORD threadloop() {
 
-        HANDLE events[2]{m_event_wake, m_event_notify_quit};
-
-        SetEvent(m_event);
+        HANDLE events[2]{m_event_notify_quit,m_event_wake};
 
         while (true) {
+
+            bool should_quit = false;
             state_set(states::STATE_ASLEEP);
+            SetEvent(m_event);
             DWORD wait = ::WaitForMultipleObjects(2, events, FALSE, INFINITE);
 
-            if (wait == WAIT_OBJECT_0) {
-                SetEvent(m_event_woke);
+            if (wait != WAIT_OBJECT_0) {
                 state_set(states::STATE_AWAKE);
-                CRTP* crtp = (CRTP*)this;
-                if (crtp->on_thread() == 0) {
+                SetEvent(m_event_woke);
+
+                CRTP& crtp = (CRTP&)*this;
+                int ret = 0;
+                while (ret == 0) {
+                    ret = crtp.on_thread();
+                    wait = ::WaitForSingleObject(m_event_notify_quit, 0);
+                    if (wait != WAIT_TIMEOUT) {
+                        state_set(states::STATE_QUITTING);
+                        should_quit = true;
+                        break;
+                    }
+                }
+                if (ret == 0 && !should_quit) {
                     continue;
                 } else {
-                    state_set(states::STATE_ABORTED);
+                    if (ret < 0) {
+                        state_set(states::STATE_ABORTED);
+                        SetEvent(m_event_aborted);
+                    } else {
+                        state_set(states::STATE_QUITTING);
+                        break;
+                    }
+                   
                 }
             } else {
                 state_set(states::STATE_QUITTING);
@@ -148,13 +189,37 @@ template <typename CRTP> class thread {
             }
         };
 
-        CloseHandle(m_thread);
+        HANDLE t = m_thread;
         m_thread = 0;
+        CloseHandle(t);
         m_thread_id = 0;
         SetEvent(m_event_quit);
         state_set(states(m_state | states::STATE_QUIT));
-
         return 0;
+    }
+
+    void clean_exit() {
+
+        DWORD d1 = timeGetTime();
+        SetEvent(m_event_notify_quit);
+        int slept = 0;
+
+        while (state() == states::STATE_AWAKE) {
+
+            if (slept >= 2000) {
+                assert("thread destructor: Your thread function is busy!" == 0);
+                break;
+            }
+            Sleep(1);
+            ++slept;
+        }
+                
+        DWORD dwWait = WaitForSingleObject(m_event_quit, MY_INFINITY);
+        assert(dwWait != WAIT_TIMEOUT
+            && "~thread: timed out waiting for thread to exit.");
+        DWORD d2 = timeGetTime();
+        TRACE("thread, with id: %ld took %ld ms to die. (slept=%d)\n",
+            this->m_id, (long)d2 - d1, slept);
     }
 
     int create() {
@@ -164,6 +229,13 @@ template <typename CRTP> class thread {
             return -EEXIST;
         }
         assert(m_thread == 0);
+
+        ResetEvent(m_event);
+        ResetEvent(m_event_notify_quit);
+        ResetEvent(m_event_quit);
+        ResetEvent(m_event_wake);
+        ResetEvent(m_event_woke);
+
         m_thread = CreateThread(
             0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id);
         DWORD wait = WaitForSingleObject(m_event, MY_INFINITY);
@@ -176,21 +248,38 @@ template <typename CRTP> class thread {
 
     public:
     NO_COPY_CLASS(thread);
-    thread(const char* id = 0)
-        : m_event(CreateEvent(0, 0, 0, 0))
-        , m_event_quit(CreateEvent(0, 0, 0, 0))
-        , m_event_wake(CreateEvent(0, 0, 0, 0))
-        , m_event_woke(CreateEvent(0, 0, 0, 0))
-        , m_event_notify_quit(CreateEvent(0, 0, 0, 0))
-        , m_thread_id(0)
+    thread(int id = -1)
+        : m_thread_id(0)
         , m_thread(CreateThread(
               0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id))
         , m_state(states::STATE_NONE)
-        , m_id(id != 0 ? id : "")
+        , m_id(id)
 
     {
-        state_set(states::STATE_ABORTED);
-        assert(m_state == states::STATE_ABORTED);
+        state_set(states::STATE_NONE);
+        assert(m_state == states::STATE_NONE);
+    }
+
+    // This is thread safe. You can call it from your own thread loop
+    // to see if you should return. Or, you can look at state(), which
+    // is also thread safe.
+    inline bool has_been_notified_to_quit() const {
+        DWORD wait = ::WaitForSingleObject(m_event_notify_quit, 0);
+        return (wait != WAIT_TIMEOUT);
+    }
+    inline int id() const { return m_id; }
+
+    ~thread() { 
+
+        if (m_thread && GetCurrentThread() == m_thread) {
+            assert(
+                "It's a crass mistake to try to destroy the thread object from "
+                "the actual thread. It would be deadlock!"
+                == 0);
+        }
+
+
+        clean_exit(); 
     }
 
     inline bool have_quit() {
@@ -200,18 +289,28 @@ template <typename CRTP> class thread {
         return false;
     }
 
-    inline DWORD start() {
-        assert(
-            have_quit() && "thread has been quit, and you want to start it??");
+    inline DWORD start(DWORD max_wait = (DWORD)-1) {
+
+        if (max_wait == (DWORD)-1) {
+            max_wait = MY_INFINITY;
+        }
+        if (have_quit()) {
+            int c = create();
+            if (c) {
+                assert("Create() thread failed" == 0);
+                return c;
+            }
+        }
         DWORD ret = ::ResumeThread(m_thread);
 
         if (ret == 1) {
-            ::WaitForSingleObject(m_event, MY_INFINITY);
+            ::WaitForSingleObject(m_event, max_wait);
+            // TRACE("This is the only place we set event[0] %i\n", m_id);
+            SetEvent(m_event_wake);
+            ::WaitForSingleObject(m_event_woke, max_wait);
         }
         return ret;
     }
-
-    protected:
     enum states {
         STATE_NONE,
         STATE_AWAKE = 1,
@@ -221,26 +320,135 @@ template <typename CRTP> class thread {
         STATE_QUIT = 16
     };
 
+    // Thread-safe -- call it from whereever you want!
+    inline states state() const {
+        concurrent::safe_read_value(m_state);
+        return static_cast<states>(m_state);
+    }
+
     private:
-    HANDLE m_event;
-    HANDLE m_event_wake;
-    HANDLE m_event_woke;
-    HANDLE m_event_notify_quit;
-    HANDLE m_event_quit;
+    event m_event;
+    event m_event_wake;
+    event m_event_woke;
+    event m_event_notify_quit;
+    event m_event_quit;
+    event m_event_aborted;
     DWORD m_thread_id;
     HANDLE m_thread;
 
     volatile LONG m_state;
-    std::string m_id;
+    int m_id;
 
     void state_set(states newstate) {
         concurrent::safe_write_value(m_state, static_cast<LONG>(newstate));
         assert(state() == newstate);
     }
-
-    inline states state() const {
-        concurrent::safe_read_value(m_state);
-        return static_cast<states>(m_state);
-    }
 };
 } // namespace concurrent
+
+#define TEST_MY_CONCURRENT
+#ifdef TEST_MY_CONCURRENT
+namespace test {
+
+static inline void test_atomic() {
+    concurrent::atomic_int<LONG> myint = 0;
+    assert(myint == 0);
+    myint = 77;
+    assert(myint.get() == 77);
+    assert(myint == 77);
+    myint = myint + 1;
+    assert(myint == 78);
+}
+class mythread : public concurrent::thread<mythread> {
+
+    typedef concurrent::thread<mythread> base_t;
+
+    friend class base_t;
+
+    public:
+    mythread(int id = -1) : base_t(id) {}
+    ~mythread() {}
+    int start() { return base_t::start(); }
+    typedef base_t::states state_t;
+
+    private:
+    int on_thread() {
+        Sleep(100);
+        return 0;
+    }
+};
+
+class mythreadex : public concurrent::thread<mythreadex> {
+
+    typedef concurrent::thread<mythreadex> base_t;
+
+    friend class base_t;
+
+    public:
+    typedef int (*thread_fun)(void*);
+    mythreadex(thread_fun tc, int id = -1) : base_t(id), m_callback(tc) {}
+    ~mythreadex() {}
+    int start() { return base_t::start(); }
+    typedef base_t::states state_t;
+
+    private:
+    int on_thread() { return m_callback((void*)this); }
+    thread_fun m_callback;
+};
+
+static inline void test_thread(int i = -1) {
+
+    mythread t(i);
+    mythread::state_t state = t.state();
+    assert(state == mythread::state_t::STATE_NONE);
+    int start_val = t.start();
+    assert(start_val == 1);
+    state = t.state();
+    assert(state >= mythread::state_t::STATE_NONE);
+}
+
+int threadfun(void* ptr) {
+    mythreadex* pt = (mythreadex*)ptr;
+    TRACE("threadfun for threadex, with id %d\n", pt->id());
+    return 0;
+}
+static inline void test_threadex(int i = -1) {
+
+    // using ft = decltype(threadfun);
+
+    mythreadex t(threadfun, i);
+    mythreadex::state_t state = t.state();
+    assert(state == mythreadex::state_t::STATE_NONE);
+    int start_val = t.start();
+    assert(start_val == 1);
+    state = t.state();
+    assert(state >= mythreadex::state_t::STATE_NONE);
+}
+
+// would like some static analyzer to spot this obvious race,
+// but have not found one yet!
+static ULONGLONG racy = 0;
+int racy_threadfun(void* ptr) {
+    mythreadex* pt = (mythreadex*)ptr;
+    ++racy;
+    if (racy > 10000) {
+        return 1;
+    }
+    return 0;
+}
+static inline void make_race(int i = -1) {
+    mythreadex t(racy_threadfun, i);
+    mythreadex t2(racy_threadfun, i + 1000);
+    assert(t.id() == i);
+    assert(t2.id() == i + 1000);
+    
+    t.start();
+    t2.start();
+
+    while (!t2.have_quit()) {
+        Sleep(1000);
+        TRACE("Racy value is %llu\n", racy);
+    }
+}
+} // namespace test
+#endif

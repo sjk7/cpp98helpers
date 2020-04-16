@@ -1,0 +1,138 @@
+<?xml version="1.0" standalone="yes"?>
+<NewDataSet>
+  <xs:schema id="NewDataSet" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="NewDataSet" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="SuppressVersion">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="CurrentVersion" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="SPSCAudio">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="FileName" type="xs:string" default="" />
+                <xs:element name="ErrorCode" type="xs:string" default="" />
+                <xs:element name="Message" type="xs:string" default="" />
+                <xs:element name="CodePrev" type="xs:unsignedInt" default="0" />
+                <xs:element name="CodeCurrent" type="xs:unsignedInt" default="0" />
+                <xs:element name="CodeNext" type="xs:unsignedInt" default="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+      <xs:unique name="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//SPSCAudio" />
+        <xs:field xpath="FileName" />
+        <xs:field xpath="ErrorCode" />
+        <xs:field xpath="Message" />
+        <xs:field xpath="CodePrev" />
+        <xs:field xpath="CodeCurrent" />
+        <xs:field xpath="CodeNext" />
+      </xs:unique>
+    </xs:element>
+  </xs:schema>
+  <SuppressVersion>
+    <CurrentVersion>2</CurrentVersion>
+  </SuppressVersion>
+  <SPSCAudio>
+    <FileName>SPSCAudio.cpp</FileName>
+    <ErrorCode>V112</ErrorCode>
+    <Message>Dangerous magic number _ used: ...URkB = kB * _;.</Message>
+    <CodePrev>3671484405</CodePrev>
+    <CodeCurrent>3047961342</CodeCurrent>
+    <CodeNext>1800939240</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>SPSCAudio.cpp</FileName>
+    <ErrorCode>V112</ErrorCode>
+    <Message>Dangerous magic number _ used: ...WOkB = kB * _;.</Message>
+    <CodePrev>1523084696</CodePrev>
+    <CodeCurrent>3595107609</CodeCurrent>
+    <CodeNext>3594913537</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_concurrent.h</FileName>
+    <ErrorCode>V513</ErrorCode>
+    <Message>Use _beginthreadex/_endthreadex functions instead of CreateThread/ExitThread functions.</Message>
+    <CodePrev>40074961</CodePrev>
+    <CodeCurrent>184126956</CodeCurrent>
+    <CodeNext>1872876491</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_concurrent.h</FileName>
+    <ErrorCode>V513</ErrorCode>
+    <Message>Use _beginthreadex/_endthreadex functions instead of CreateThread/ExitThread functions.</Message>
+    <CodePrev>128569</CodePrev>
+    <CodeCurrent>33238508</CodeCurrent>
+    <CodeNext>1872876505</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>Win32Trace.h</FileName>
+    <ErrorCode>V111</ErrorCode>
+    <Message>Call of function '_CrtDbgReport' with variable number of arguments. Sixth argument has memsize type.</Message>
+    <CodePrev>0</CodePrev>
+    <CodeCurrent>3601934441</CodeCurrent>
+    <CodeNext>125</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_concurrent.h</FileName>
+    <ErrorCode>V513</ErrorCode>
+    <Message>Use _beginthreadex/_endthreadex functions instead of CreateThread/ExitThread functions.</Message>
+    <CodePrev>0</CodePrev>
+    <CodeCurrent>184126956</CodeCurrent>
+    <CodeNext>1872876491</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_concurrent.h</FileName>
+    <ErrorCode>V513</ErrorCode>
+    <Message>Use _beginthreadex/_endthreadex functions instead of CreateThread/ExitThread functions.</Message>
+    <CodePrev>292409</CodePrev>
+    <CodeCurrent>33238508</CodeCurrent>
+    <CodeNext>1872876505</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_concurrent.h</FileName>
+    <ErrorCode>V547</ErrorCode>
+    <Message>Expression 'ret == _' is always false.</Message>
+    <CodePrev>125</CodePrev>
+    <CodeCurrent>93201</CodeCurrent>
+    <CodeNext>17733</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>SPSCAudio.cpp</FileName>
+    <ErrorCode>V779</ErrorCode>
+    <Message>Unreachable code detected. It is possible that an error is present.</Message>
+    <CodePrev>3000041</CodePrev>
+    <CodeCurrent>46132769</CodeCurrent>
+    <CodeNext>161006597</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_spsc_buffer.h</FileName>
+    <ErrorCode>V112</ErrorCode>
+    <Message>Dangerous magic number _ used: ...URkB = kB * _;.</Message>
+    <CodePrev>3671484405</CodePrev>
+    <CodeCurrent>3047961342</CodeCurrent>
+    <CodeNext>1800939240</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_spsc_buffer.h</FileName>
+    <ErrorCode>V112</ErrorCode>
+    <Message>Dangerous magic number _ used: ...WOkB = kB * _;.</Message>
+    <CodePrev>1523084696</CodePrev>
+    <CodeCurrent>3595107609</CodeCurrent>
+    <CodeNext>3594913537</CodeNext>
+  </SPSCAudio>
+  <SPSCAudio>
+    <FileName>my_concurrent.h</FileName>
+    <ErrorCode>V576</ErrorCode>
+    <Message>Incorrect format. Consider checking the third actual argument of the 'printf' function. The SIGNED integer type argument is expected.</Message>
+    <CodePrev>238051345</CodePrev>
+    <CodeCurrent>1444244310</CodeCurrent>
+    <CodeNext>3413868067</CodeNext>
+  </SPSCAudio>
+</NewDataSet>

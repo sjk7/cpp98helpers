@@ -1,0 +1,4 @@
+V:\shared\Docs\cpp98helpers\Debug\SPSCAudio.exe.lastcodeanalysissucceeded
+V:\shared\Docs\cpp98helpers\Debug\NativeCodeAnalysis.read.1.tlog
+V:\shared\Docs\cpp98helpers\Debug\SPSCAudio.exe
+V:\shared\Docs\cpp98helpers\Debug\SPSCAudio.pdb
