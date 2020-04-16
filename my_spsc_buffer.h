@@ -19,8 +19,7 @@ static const size_t mB = kB * 1024;
 template <size_t POW2NUM> static constexpr inline bool is_power_of_2() {
     return (POW2NUM != 0) && ((POW2NUM & (POW2NUM - 1)) == 0);
 }
-template <typename T, size_t POW2NUM>
-inline const T modulo_power_of_2(T n) {
+template <typename T, size_t POW2NUM> inline const T modulo_power_of_2(T n) {
 #if _MSC_VER > 1899
     static_assert(is_power_of_2<POW2NUM>(),
         "modulo_power_of_2: number must be a power of 2.");
@@ -31,29 +30,35 @@ inline const T modulo_power_of_2(T n) {
 } // namespace numbers
 
 namespace concurrent {
+struct d {
+    d() : read_pos(0), write_pos(0), total_read(0), total_written(0) {}
+    volatile LONG read_pos;
+    volatile LONG write_pos;
+    volatile ULONGLONG total_read;
+    volatile ULONGLONG total_written;
+};
+
 template <size_t SIZE> struct spsc_data {
-    spsc_data()
-        : m_read_pos(0)
-        , m_write_pos(0)
-        , m_total_read(0), m_total_written(0) {
-        assert(numbers::is_power_of_2<SIZE>() && "spsc_data: SIZE not a power of 2!");
+    spsc_data() {
+        assert(numbers::is_power_of_2<SIZE>()
+            && "spsc_data: SIZE not a power of 2!");
     }
     NO_COPY_CLASS(spsc_data);
 
-    inline size_t size() const { return SIZE;   }
+    inline size_t size() const { return SIZE; }
     inline LONG size_s() const { return (LONG)SIZE; }
 
     inline LONG read_pos() const {
-        return concurrent::safe_read_value(m_read_pos);
+        return concurrent::safe_read_value(m_d.read_pos);
     }
     inline LONG write_pos() const {
-        return concurrent::safe_read_value(m_write_pos);
+        return concurrent::safe_read_value(m_d.write_pos);
     }
     inline ULONGLONG total_read() const {
-        return concurrent::safe_read_value(m_read_pos);
+        return concurrent::safe_read_value(m_d.read_pos);
     }
     inline ULONGLONG total_written() const {
-        return concurrent::safe_read_value(m_total_written);
+        return concurrent::safe_read_value(m_d.total_written);
     }
 
     // How many bytes can I read right now?
@@ -67,51 +72,57 @@ template <size_t SIZE> struct spsc_data {
         LONG ret = (LONG)SIZE - (LONG)can_read();
         return ret;
     }
+    // Although the individual values themselves are thread-safe,
+    // of course setting them all is *not*. So be sure you are the
+    // only one updating *any* of the values when you call clear().
+    void clear() {
+        concurrent::safe_write_value(m_d.total_written, (ULONGLONG)0);
+        concurrent::safe_write_value(m_d.write_pos, (LONG)0);
+        concurrent::safe_write_value(m_d.read_pos, (LONG)0);
+        concurrent::safe_write_value(m_d.total_read, (ULONGLONG)0);
+    }
 
     protected:
     // returns the *new* value set
     inline LONG update_write_pos(LONG bytes_written) {
-        LONG my_write_pos = bytes_written + m_write_pos;
+        LONG my_write_pos = bytes_written + m_d.write_pos;
         my_write_pos = numbers::modulo_power_of_2<LONG, SIZE>(my_write_pos);
         assert(my_write_pos < (LONG)SIZE);
-        concurrent::safe_write_value(m_write_pos, my_write_pos);
-        assert(m_write_pos == my_write_pos);
+        concurrent::safe_write_value(m_d.write_pos, my_write_pos);
+        assert(m_d.write_pos == my_write_pos);
         return my_write_pos;
     }
 
-   inline LONG update_read_pos(LONG bytes_read) {
-        LONG my_read_pos = bytes_read + m_read_pos;
-       my_read_pos = numbers::modulo_power_of_2<LONG, SIZE>(my_read_pos);
-            ASSERT(my_read_pos < (LONG)SIZE);
-        concurrent::safe_write_value(m_read_pos, my_read_pos);
-        assert(m_read_pos == my_read_pos);
+    inline LONG update_read_pos(LONG bytes_read) {
+        LONG my_read_pos = bytes_read + m_d.read_pos;
+        my_read_pos = numbers::modulo_power_of_2<LONG, SIZE>(my_read_pos);
+        ASSERT(my_read_pos < (LONG)SIZE);
+        concurrent::safe_write_value(m_d.read_pos, my_read_pos);
+        assert(m_d.read_pos == my_read_pos);
         return my_read_pos;
     }
 
     inline ULONGLONG update_bytes_written(ULONGLONG bytes_written) {
-        ULONGLONG new_bytes_written = m_total_written + bytes_written;
+        ULONGLONG new_bytes_written = m_d.total_written + bytes_written;
         assert(new_bytes_written <= (LONG)SIZE);
-        concurrent::safe_write_value(m_total_written, new_bytes_written);
-        assert(m_total_written == new_bytes_written);
+        concurrent::safe_write_value(m_d.total_written, new_bytes_written);
+        assert(m_d.total_written == new_bytes_written);
         return new_bytes_written;
     }
 
     inline ULONGLONG update_bytes_read(ULONGLONG bytes_read) {
-        ULONGLONG new_bytes_read = m_total_read + bytes_read;
+        ULONGLONG new_bytes_read = m_d.total_read + bytes_read;
         assert(new_bytes_read <= (LONG)SIZE);
-        concurrent::safe_write_value(m_total_read, new_bytes_read);
-        assert(m_total_read == new_bytes_read);
+        concurrent::safe_write_value(m_d.total_read, new_bytes_read);
+        assert(m_d.total_read == new_bytes_read);
         return new_bytes_read;
     }
 
     private:
-    volatile LONG m_read_pos;
-    volatile LONG m_write_pos;
-    volatile ULONGLONG m_total_read;
-    volatile ULONGLONG m_total_written;
+    d m_d;
 };
 
-template <size_t SIZE> class spsc :public spsc_data<SIZE> {
+template <size_t SIZE> class spsc : public spsc_data<SIZE> {
     public:
     typedef char byte_type;
     typedef spsc_data<SIZE> data_t;
@@ -130,7 +141,11 @@ template <size_t SIZE> class spsc :public spsc_data<SIZE> {
     // return the actual number of bytes added to the buffer
     size_t write(const byte_type* const data, size_t lenb) {
 
+        assert(lenb > 0 && "why would you want to write zero bytes?");
         const size_t space = (size_t)data_t::can_write();
+        if (space == 0) {
+            return 0;
+        }
         const size_t ret = (std::min)(space, lenb);
         if (ret) {
             size_t write_pos = (size_t)data_t::write_pos();
@@ -154,13 +169,11 @@ template <size_t SIZE> class spsc :public spsc_data<SIZE> {
         return ret;
     }
 
-private:
+    private:
     byte_type* m_buf;
 };
 
-
 } // namespace concurrent
-
 
 namespace test {
 void test_spsc_buffer() {
@@ -173,15 +186,23 @@ void test_spsc_buffer() {
     for (int i = 0; i < 512; ++i) {
         size_t write = buf.write("x", 1);
         assert(write == 1);
-        assert((int)buf.total_written() == i+1);
-        assert(buf.can_write() == (int)(buf.size() - (i+1)));
+        assert((int)buf.total_written() == i + 1);
+        assert(buf.can_write() == (int)(buf.size() - (i + 1)));
         ++written;
     }
 
     size_t wrote = buf.write("y", 1);
     assert(wrote == 0); // coz its full
     assert(buf.can_write() == 0);
-}
+    assert(buf.can_read() == 512);
+    assert(buf.total_read() == 0);
+    assert(buf.total_written() == 512);
 
+    buf.clear();
+    assert(buf.can_write() == buf.size_s());
+    assert(buf.can_read() == 0);
+    assert(buf.total_read() == 0);
+    assert(buf.total_written() == 0);
+}
 
 } // namespace test
