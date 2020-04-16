@@ -7,7 +7,6 @@
 // SPSCAudio.cpp
 
 #include <iostream>
-#include <Windows.h>
 #include "my_concurrent.h"
 
 namespace numbers {
@@ -123,7 +122,7 @@ template <size_t SIZE> class spsc {
             if (finish > end()) {
                 xtra = finish - end();
                 sz -= xtra;
-                assert(sz >= 0);
+                assert(sz <= lenb);
             }
             memcpy(write_ptr, data, sz);
             if (xtra) {

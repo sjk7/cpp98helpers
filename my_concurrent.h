@@ -100,8 +100,8 @@ template <typename T> class atomic_int {
 
     public:
     NO_COPY_CLASS(atomic_int);
-    explicit atomic_int(){};
-    atomic_int(T newval) { setval(newval); }
+    explicit atomic_int() : m_val(0){};
+    atomic_int(T newval) : m_val(newval) {}
     inline T get() const { return m_val; }
     operator T() const { return m_val; }
     atomic_int& operator=(const T value) {
@@ -147,8 +147,13 @@ template <typename CRTP> class thread {
                 break;
             }
         };
+
+        CloseHandle(m_thread);
+        m_thread = 0;
+        m_thread_id = 0;
         SetEvent(m_event_quit);
         state_set(states(m_state | states::STATE_QUIT));
+
         return 0;
     }
 
@@ -158,6 +163,15 @@ template <typename CRTP> class thread {
                 "thread: call to create() when we have a thread already" == 0);
             return -EEXIST;
         }
+        assert(m_thread == 0);
+        m_thread = CreateThread(
+            0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id);
+        DWORD wait = WaitForSingleObject(m_event, MY_INFINITY);
+        assert(wait != WAIT_TIMEOUT);
+        if (wait == WAIT_TIMEOUT) {
+            return -ETIMEDOUT;
+        }
+        return 0;
     }
 
     public:
@@ -168,6 +182,7 @@ template <typename CRTP> class thread {
         , m_event_wake(CreateEvent(0, 0, 0, 0))
         , m_event_woke(CreateEvent(0, 0, 0, 0))
         , m_event_notify_quit(CreateEvent(0, 0, 0, 0))
+        , m_thread_id(0)
         , m_thread(CreateThread(
               0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id))
         , m_state(states::STATE_NONE)
@@ -212,8 +227,9 @@ template <typename CRTP> class thread {
     HANDLE m_event_woke;
     HANDLE m_event_notify_quit;
     HANDLE m_event_quit;
-    HANDLE m_thread;
     DWORD m_thread_id;
+    HANDLE m_thread;
+
     volatile LONG m_state;
     std::string m_id;
 
