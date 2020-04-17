@@ -1,6 +1,8 @@
 #pragma once
 
 #include "my_concurrent.h"
+
+
 #include <algorithm>
 // my_spsc_buffer.h
 namespace numbers {
@@ -32,10 +34,10 @@ template <typename T, size_t POW2NUM> inline const T modulo_power_of_2(T n) {
 namespace concurrent {
 struct d {
     d() : read_pos(0), write_pos(0), total_read(0), total_written(0) {}
-    volatile LONG read_pos;
-    volatile LONG write_pos;
-    volatile ULONGLONG total_read;
-    volatile ULONGLONG total_written;
+    volatile mutable LONG read_pos;
+    volatile mutable LONG write_pos;
+    volatile mutable ULONGLONG total_read;
+    volatile mutable ULONGLONG total_written;
 };
 
 template <size_t SIZE> struct spsc_data {
@@ -57,9 +59,11 @@ template <size_t SIZE> struct spsc_data {
     inline ULONGLONG total_read() const {
         return concurrent::safe_read_value(m_d.read_pos);
     }
+
     inline ULONGLONG total_written() const {
         return concurrent::safe_read_value(m_d.total_written);
     }
+
 
     // How many bytes can I read right now?
     inline LONG can_read() const {
@@ -96,7 +100,7 @@ template <size_t SIZE> struct spsc_data {
     inline LONG update_read_pos(LONG bytes_read) {
         LONG my_read_pos = bytes_read + m_d.read_pos;
         my_read_pos = numbers::modulo_power_of_2<LONG, SIZE>(my_read_pos);
-        ASSERT(my_read_pos < (LONG)SIZE);
+        assert(my_read_pos < (LONG)SIZE);
         concurrent::safe_write_value(m_d.read_pos, my_read_pos);
         assert(m_d.read_pos == my_read_pos);
         return my_read_pos;
@@ -119,7 +123,7 @@ template <size_t SIZE> struct spsc_data {
     }
 
     private:
-    d m_d;
+    volatile d m_d;
 };
 
 template <size_t SIZE> class spsc : public spsc_data<SIZE> {
@@ -136,36 +140,51 @@ template <size_t SIZE> class spsc : public spsc_data<SIZE> {
         m_buf = 0;
     }
 
-    inline const byte_type* const end() const { return m_buf + SIZE; }
+    inline const byte_type* end() const { return m_buf + SIZE; }
 
     // return the actual number of bytes added to the buffer
     size_t write(const byte_type* const data, size_t lenb) {
-
+	
+		using namespace std;
         assert(lenb > 0 && "why would you want to write zero bytes?");
         const size_t space = (size_t)data_t::can_write();
         if (space == 0) {
             return 0;
         }
-        const size_t ret = (std::min)(space, lenb);
-        if (ret) {
+#ifdef MSVC6
+#define LONG ptrdiff_t;
+        const size_t ret = std::_cpp_min(space, lenb);
+#else
+		const size_t ret = (std::min)(space, lenb);
+#endif
+       
+		if (ret) {
+
             size_t write_pos = (size_t)data_t::write_pos();
+			
             byte_type* write_ptr = &m_buf[write_pos];
             const byte_type* const finish = write_ptr + lenb;
-            std::ptrdiff_t xtra = 0;
+            ptrdiff_t xtra = 0;
             size_t sz = ret;
+			
             if (finish > end()) {
                 xtra = finish - end();
                 sz -= xtra;
                 assert(sz <= lenb);
             }
             memcpy(write_ptr, data, sz);
+			
             if (xtra) {
                 memcpy(m_buf, data + sz, xtra);
             }
-            data_t::update_write_pos((LONG)ret);
-            data_t::update_bytes_written(ret);
+			
+			
+			data_t::update_write_pos(static_cast<long>(ret));
+			
+            data_t::update_bytes_written(static_cast<ULONGLONG>(ret));
+			
         }
-
+		
         return ret;
     }
 

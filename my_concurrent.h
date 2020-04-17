@@ -17,82 +17,50 @@
 #include <Windows.h>
 #include <mmsystem.h>
 #endif
-#include <assert.h>
+
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
 
 #ifndef TRACE
 #define TRACE printf
 #endif
 
-#if _MSC_VER > 1899
+#if  ((_MSC_VER > 1899) && (WINVER > 0x0601) )
 #define MY_NO_EXCEPT noexcept
 #else
-#define NO_EXCEPT
+#define MY_NO_EXCEPT
+#define constexpr
+#ifdef _MSC_VER
+#pragma warning (disable : 4482) // non-standard enum use (qualified)
+#pragma warning (disable : 4355) // 'this' used in base member initializer list
+#endif
+#endif
+
+#ifdef _MSC_VER
+#if (_MSC_VER <= 1200)
+#define MSVC6
+#endif
 #endif
 
 namespace concurrent {
-// returns the initial value of value
-template <typename T>
-static inline T safe_read_value(volatile T value) MY_NO_EXCEPT {
-#if _MSC_VER > 1899
-    static_assert(!std::is_integral_v<T>,
-        "safe_read_value 32 or 64 bit integer types only.");
-#endif
-    assert("Primary template should not be called" == 0);
-    return 0;
-}
-template <>
-static inline LONG safe_read_value(volatile LONG value) MY_NO_EXCEPT {
-    return InterlockedExchangeAdd(&value, 0);
-}
-template <>
-static inline ULONG safe_read_value(volatile ULONG value) MY_NO_EXCEPT {
+
+
+static inline LONG safe_read_value(volatile LONG& value) MY_NO_EXCEPT {
     return InterlockedExchangeAdd((volatile LONG*)&value, 0);
 }
-template <>
-static inline ULONGLONG safe_read_value(volatile ULONGLONG value) MY_NO_EXCEPT {
-    return InterlockedExchangeAdd64((volatile LONGLONG*)&value, 0);
-}
-template <>
-static inline LONGLONG safe_read_value(volatile LONGLONG value) MY_NO_EXCEPT {
-    return InterlockedExchangeAdd64(&value, 0);
+static inline ULONGLONG safe_read_value(volatile ULONGLONG& value) MY_NO_EXCEPT {
+    return InterlockedExchangeAdd64(reinterpret_cast<LONGLONG volatile*>(&value), 0);
 }
 
-// returns the initial value of value
-static inline LONGLONG safe_read_value(volatile LONGLONG value) MY_NO_EXCEPT {
-    return InterlockedExchangeAdd64(&value, 0);
-}
-
-template <typename T>
-static inline T safe_write_value(volatile T& target, T new_value) MY_NO_EXCEPT {
-#if _MSC_VER > 1899
-    static_assert(!std::is_integral_v<T>,
-        "safe_write_value: Use 32 or 64 bit integer types only.");
-#endif
-    assert("Primary template should not be called" == 0);
-}
-// returns the initial value of new_value
-template <>
 static inline LONG safe_write_value(
     volatile LONG& target, LONG new_value) MY_NO_EXCEPT {
     return InterlockedExchange(&target, new_value);
 }
-template <>
-static inline ULONG safe_write_value(
-    volatile ULONG& target, ULONG new_value) MY_NO_EXCEPT {
-    return InterlockedExchange((LONG*)&target, new_value);
-}
 
-template <>
-// returns the initial value of new_value
-static inline LONGLONG safe_write_value(
-    volatile LONGLONG& target, LONGLONG new_value) MY_NO_EXCEPT {
-    return InterlockedExchange64(&target, new_value);
-}
-template <>
-// returns the initial value of new_value
 static inline ULONGLONG safe_write_value(
     volatile ULONGLONG& target, ULONGLONG new_value) MY_NO_EXCEPT {
-    return InterlockedExchange64((LONGLONG*)&target, new_value);
+    return InterlockedExchange64(reinterpret_cast<LONGLONG volatile*>(&target), new_value);
 }
 
 template <typename T> class atomic_int {
@@ -138,16 +106,75 @@ struct event {
     private:
     HANDLE m_h;
 };
+
+#ifdef _MSC_VER 
+#if (_MSC_VER <= 1200)
+#define DAMN_VC6
+#endif
+#endif
+
+
+struct STATES {
+
+#ifndef DAMN_VC6
+    static const LONG STATE_NONE  = 0;
+    static const LONG STATE_AWAKE = 1;
+    static const LONG STATE_ASLEEP = 2;
+    static const LONG STATE_QUITTING = 4;
+    static const LONG STATE_ABORTED = 8;
+    static const LONG STATE_QUIT = 16;
+#else
+	// errors? In VC6 you need to add m_thread_state_defs.cpp
+	static const LONG STATE_NONE;
+    static const LONG STATE_AWAKE;
+    static const LONG STATE_ASLEEP;
+    static const LONG STATE_QUITTING;
+    static const LONG STATE_ABORTED;
+    static const LONG STATE_QUIT;
+#endif
+
+    inline STATES(const LONG v) : m_value(v) {}
+    inline STATES(const STATES& rhs) : m_value(rhs) {}
+    inline STATES& operator=(const STATES& rhs) {
+        m_value = rhs.m_value;
+        return *this;
+    }
+
+    inline operator LONG() const { return m_value; }
+
+    private:
+    LONG m_value;
+};
+
 template <typename CRTP> class thread {
 
-    static DWORD WINAPI thread_proc(_In_ LPVOID p) {
+    friend CRTP; /// hmmm: how to 98'ify this??
+
+    // private constructor guards against someone using the wrong class!
+    thread(int id = -1)
+        : m_thread_id(0)
+        , m_thread(CreateThread(
+              0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id))
+        , m_state(states::STATE_NONE)
+        , m_id(id)
+
+    {
+        state_set(states::STATE_NONE);
+        assert(m_state == states::STATE_NONE);
+    }
+
+    public:
+    typedef STATES states;
+
+    private:
+    static DWORD WINAPI thread_proc(LPVOID p) {
         thread<CRTP>* t = (thread<CRTP>*)p;
         return t->threadloop();
     }
 
     DWORD threadloop() {
 
-        HANDLE events[2]{m_event_notify_quit,m_event_wake};
+        HANDLE events[2] = {m_event_notify_quit,m_event_wake};
 
         while (true) {
 
@@ -218,7 +245,7 @@ template <typename CRTP> class thread {
         assert(dwWait != WAIT_TIMEOUT
             && "~thread: timed out waiting for thread to exit.");
         DWORD d2 = timeGetTime();
-        TRACE("thread, with id: %ld took %ld ms to die. (slept=%d)\n",
+        TRACE("thread, with id: %d took %ld ms to die. (slept=%d)\n",
             this->m_id, (long)d2 - d1, slept);
     }
 
@@ -240,6 +267,9 @@ template <typename CRTP> class thread {
             0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id);
         DWORD wait = WaitForSingleObject(m_event, MY_INFINITY);
         assert(wait != WAIT_TIMEOUT);
+#ifndef ETIMEDOUT
+#define ETIMEDOUT 3447
+#endif
         if (wait == WAIT_TIMEOUT) {
             return -ETIMEDOUT;
         }
@@ -248,17 +278,6 @@ template <typename CRTP> class thread {
 
     public:
     NO_COPY_CLASS(thread);
-    thread(int id = -1)
-        : m_thread_id(0)
-        , m_thread(CreateThread(
-              0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id))
-        , m_state(states::STATE_NONE)
-        , m_id(id)
-
-    {
-        state_set(states::STATE_NONE);
-        assert(m_state == states::STATE_NONE);
-    }
 
     // This is thread safe. You can call it from your own thread loop
     // to see if you should return. Or, you can look at state(), which
@@ -283,7 +302,7 @@ template <typename CRTP> class thread {
     }
 
     inline bool have_quit() {
-        if ((state() & states::STATE_QUIT) == STATE_QUIT) {
+        if ((state() & states::STATE_QUIT) == states::STATE_QUIT) {
             return true;
         }
         return false;
@@ -311,39 +330,33 @@ template <typename CRTP> class thread {
         }
         return ret;
     }
-    enum states {
-        STATE_NONE,
-        STATE_AWAKE = 1,
-        STATE_ASLEEP = 2,
-        STATE_QUITTING = 4,
-        STATE_ABORTED = 8,
-        STATE_QUIT = 16
-    };
 
     // Thread-safe -- call it from whereever you want!
     inline states state() const {
+
         concurrent::safe_read_value(m_state);
         return static_cast<states>(m_state);
     }
 
     private:
-    event m_event;
-    event m_event_wake;
-    event m_event_woke;
-    event m_event_notify_quit;
-    event m_event_quit;
-    event m_event_aborted;
+    mutable event m_event;
+    mutable event m_event_wake;
+    mutable event m_event_woke;
+    mutable event m_event_notify_quit;
+    mutable event m_event_quit;
+    mutable event m_event_aborted;
     DWORD m_thread_id;
     HANDLE m_thread;
 
-    volatile LONG m_state;
+    mutable volatile LONG m_state;
     int m_id;
 
     void state_set(states newstate) {
-        concurrent::safe_write_value(m_state, static_cast<LONG>(newstate));
+        concurrent::safe_write_value(m_state, (volatile LONG)newstate);
         assert(state() == newstate);
     }
-};
+}; // class thread
+
 } // namespace concurrent
 
 #define TEST_MY_CONCURRENT
@@ -361,38 +374,37 @@ static inline void test_atomic() {
 }
 class mythread : public concurrent::thread<mythread> {
 
-    typedef concurrent::thread<mythread> base_t;
-
-    friend class base_t;
-
     public:
+    typedef concurrent::thread<mythread> base_t;
+    typedef mythread friend_type;
+
     mythread(int id = -1) : base_t(id) {}
     ~mythread() {}
     int start() { return base_t::start(); }
     typedef base_t::states state_t;
-
-    private:
     int on_thread() {
         Sleep(100);
         return 0;
     }
+
+    private:
 };
 
 class mythreadex : public concurrent::thread<mythreadex> {
 
     typedef concurrent::thread<mythreadex> base_t;
 
-    friend class base_t;
-
     public:
+    typedef mythreadex friend_type;
     typedef int (*thread_fun)(void*);
     mythreadex(thread_fun tc, int id = -1) : base_t(id), m_callback(tc) {}
     ~mythreadex() {}
     int start() { return base_t::start(); }
     typedef base_t::states state_t;
 
-    private:
     int on_thread() { return m_callback((void*)this); }
+
+    private:
     thread_fun m_callback;
 };
 
@@ -400,14 +412,14 @@ static inline void test_thread(int i = -1) {
 
     mythread t(i);
     mythread::state_t state = t.state();
-    assert(state == mythread::state_t::STATE_NONE);
+    assert(state == mythread::states::STATE_NONE);
     int start_val = t.start();
     assert(start_val == 1);
     state = t.state();
     assert(state >= mythread::state_t::STATE_NONE);
 }
 
-int threadfun(void* ptr) {
+static int threadfun(void* ptr) {
     mythreadex* pt = (mythreadex*)ptr;
     TRACE("threadfun for threadex, with id %d\n", pt->id());
     return 0;
@@ -428,8 +440,9 @@ static inline void test_threadex(int i = -1) {
 // would like some static analyzer to spot this obvious race,
 // but have not found one yet!
 static ULONGLONG racy = 0;
-int racy_threadfun(void* ptr) {
+static int racy_threadfun(void* ptr) {
     mythreadex* pt = (mythreadex*)ptr;
+    (void)pt;
     ++racy;
     if (racy > 10000) {
         return 1;
