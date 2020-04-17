@@ -1,14 +1,1 @@
-﻿<?xml version="1.0" encoding="utf-8"?><DEFECTS><DEFECT>
-    <SFA>
-      <FILEPATH>c:\users\coolie\source\repos\spscaudio</FILEPATH>
-      <FILENAME>my_concurrent.h</FILENAME>
-      <LINE>104</LINE>
-      <COLUMN>4</COLUMN>
-    </SFA>
-    <DEFECTCODE>26495</DEFECTCODE>
-    <DESCRIPTION>Variable 'concurrent::atomic_int&lt;long&gt;::m_val' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
-    <FUNCTION>concurrent::atomic_int&lt;long&gt;::{ctor}</FUNCTION>
-    <DECORATED>??0?$atomic_int@J@concurrent@@QAE@J@Z</DECORATED>
-    <FUNCLINE>104</FUNCLINE>
-    <PATH></PATH>
-  </DEFECT></DEFECTS>
+﻿<?xml version="1.0" encoding="utf-8"?><DEFECTS />

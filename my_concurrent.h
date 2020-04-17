@@ -352,7 +352,7 @@ template <typename CRTP> class thread {
     int m_id;
 
     void state_set(states newstate) {
-        concurrent::safe_write_value(m_state, (volatile LONG)newstate);
+        concurrent::safe_write_value(m_state, (LONG)newstate);
         assert(state() == newstate);
     }
 }; // class thread
