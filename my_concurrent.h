@@ -30,7 +30,7 @@
 #define MY_NO_EXCEPT noexcept
 #else
 #define MY_NO_EXCEPT
-#define constexpr
+
 #ifdef _MSC_VER
 #pragma warning (disable : 4482) // non-standard enum use (qualified)
 #pragma warning (disable : 4355) // 'this' used in base member initializer list
@@ -40,6 +40,7 @@
 #ifdef _MSC_VER
 #if (_MSC_VER <= 1200)
 #define MSVC6
+#define constexpr
 #endif
 #endif
 

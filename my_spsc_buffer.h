@@ -2,7 +2,6 @@
 
 #include "my_concurrent.h"
 
-
 #include <algorithm>
 // my_spsc_buffer.h
 namespace numbers {
@@ -41,6 +40,7 @@ struct d {
 };
 
 template <size_t SIZE> struct spsc_data {
+	
     spsc_data() {
         assert(numbers::is_power_of_2<SIZE>()
             && "spsc_data: SIZE not a power of 2!");
@@ -126,21 +126,55 @@ template <size_t SIZE> struct spsc_data {
     volatile d m_d;
 };
 
-template <size_t SIZE> class spsc : public spsc_data<SIZE> {
+template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
+#ifdef SPSC_TESTS_ENABLED
+	template <typename SZ>
+	friend struct spsc_tester;
+#endif
     public:
     typedef char byte_type;
     typedef spsc_data<SIZE> data_t;
 
-    spsc() : m_buf(new byte_type[SIZE]) {
+    spsc_buffer() : m_buf(new byte_type[SIZE]) {
         memset(m_buf, 0, SIZE * sizeof(byte_type));
     };
 
-    ~spsc() {
+    ~spsc_buffer() {
         delete[] m_buf;
         m_buf = 0;
     }
 
+	inline const byte_type* begin() const {
+		return m_buf;
+	}
     inline const byte_type* end() const { return m_buf + SIZE; }
+
+	size_t read(byte_type* target, size_t lenb) {
+		using namespace std;
+		assert(target && lenb);
+#ifdef MSVC6
+#define LONG ptrdiff_t;
+		const size_t ret = std::_cpp_min(can_read(), lenb);
+#else
+		const size_t ret = (std::min)(size_t(can_read()), lenb);
+#endif
+		byte_type* read_ptr = &m_buf[read_pos()];
+		byte_type* read_end = read_ptr + ret;
+		size_t sz1 = ret; size_t sz2 = 0;
+		if (read_end > end()) {
+			ptrdiff_t xtra = read_end - end();
+			sz1  -= xtra;
+			assert(sz1 <= SIZE);
+			sz2 = xtra;
+		}
+		memcpy(target, read_ptr, sz1);
+		read_ptr += sz1;
+		if (sz2) {
+			memcpy(target, read_ptr, sz2);
+		}
+		return ret;
+		
+	}
 
     // return the actual number of bytes added to the buffer
     size_t write(const byte_type* const data, size_t lenb) {
@@ -163,7 +197,7 @@ template <size_t SIZE> class spsc : public spsc_data<SIZE> {
             size_t write_pos = (size_t)data_t::write_pos();
 			
             byte_type* write_ptr = &m_buf[write_pos];
-            const byte_type* const finish = write_ptr + lenb;
+            const byte_type* const finish = write_ptr + ret;
             ptrdiff_t xtra = 0;
             size_t sz = ret;
 			
@@ -188,16 +222,27 @@ template <size_t SIZE> class spsc : public spsc_data<SIZE> {
         return ret;
     }
 
+	byte_type* const buffer() {
+		return m_buf;
+	}
     private:
     byte_type* m_buf;
 };
 
 } // namespace concurrent
 
+#ifdef SPSC_TESTS_ENABLED
+
+template <size_t SIZE>
+struct spsc_tester : public concurrent::spsc_buffer<SIZE> {
+	typedef concurrent::spsc_buffer<SIZE> base;
+
+};
 namespace test {
+
 void test_spsc_buffer() {
 
-    concurrent::spsc<512> buf;
+    concurrent::spsc_buffer<512> buf;
     assert(buf.size() == 512);
     assert(buf.size_s() == 512);
     int written = 0;
@@ -223,5 +268,47 @@ void test_spsc_buffer() {
     assert(buf.total_read() == 0);
     assert(buf.total_written() == 0);
 }
+
+template <typename T>
+bool has_consec_values(T* begin, T*  end, T start_val = 0) {
+	
+	T expected = start_val;
+
+	while (begin != end) {
+		if (*begin++ != expected++) {
+			return false;
+		}
+	}
+	return true;
+}
+
+void test_spsc_buffer_wrapping()
+{
+	spsc_tester<256> buf;
+	static char cbuf[1000];
+	char c = 0;
+	// there is no std::iota() in c++98/0x
+	for (size_t x = 0; x < 1000; ++x) {
+		cbuf[x] = c++; // signed wrapping
+	}
+
+	assert(has_consec_values(cbuf, &cbuf[1000]));
+	size_t wrote = buf.write(cbuf, 1000);
+	assert(wrote == 256);
+	assert(buf.write_pos() == 0);
+	assert(buf.total_written() == 256);
+	assert(buf.read_pos() == 0);
+	assert(buf.total_read() == 0);
+	assert(buf.can_read() == 256);
+	
+	assert(has_consec_values((char*)buf.begin(), (char*)buf.end()));
+	static char read_buf[1000];
+	size_t read = buf.read(read_buf, 1000);
+	assert(read == 256);
+	assert(has_consec_values(read_buf, read_buf + 256));
+	
+
+}
+#endif // SPSC_TESTS_ENABLED
 
 } // namespace test

@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "my_concurrent.h"
+#define SPSC_TESTS_ENABLED
 #include "my_spsc_buffer.h"
 
 
@@ -19,6 +20,7 @@ int main() {
 #endif
 
     timeBeginPeriod(1);
+	test::test_spsc_buffer_wrapping();
     test::test_spsc_buffer();
 
     {
