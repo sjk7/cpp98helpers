@@ -431,10 +431,8 @@ static int threadfun(void* ptr) {
     TRACE("threadfun for threadex, with id %d\n", pt->id());
     return 0;
 }
+
 static inline void test_threadex(int i = -1) {
-
-    // using ft = decltype(threadfun);
-
     mythreadex t(threadfun, i);
     mythreadex::state_t state = t.state();
     assert(state == mythreadex::state_t::STATE_NONE);

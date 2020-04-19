@@ -12,7 +12,6 @@
 #define SPSC_TESTS_ENABLED
 #include "my_spsc_buffer.h"
 
-
 int main() {
 
 #ifdef _MSC_VER
@@ -24,7 +23,7 @@ int main() {
     test::test_spsc_buffer();
 
     {
-        for (int i = 0; i < 50; ++i) {
+        for (int i = 0; i < 15; ++i) {
             test::test_threadex(i);
         }
     }
