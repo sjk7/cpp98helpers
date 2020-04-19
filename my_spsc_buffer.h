@@ -67,8 +67,8 @@ template <size_t SIZE> struct spsc_data {
 
     // How many bytes can I read right now?
     inline LONG can_read() const {
-        const LONG w = total_written();
-        const LONG r = total_read();
+        const LONG w = (LONG)total_written();
+        const LONG r = (LONG)total_read();
         LONG ret = w- r;
         assert(ret >= 0);
         return ret;
@@ -173,7 +173,7 @@ template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
 			target += sz1;
 			memcpy(target, m_buf, sz2);
 		}
-        data_t::update_read_pos(ret);
+        data_t::update_read_pos((LONG)ret);
         data_t::update_bytes_read(ret);
 
 		return ret;

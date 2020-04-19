@@ -10,4 +10,6 @@ add_executable(concurrent_tests
     ../../my_concurrent.h
     ../../my_spsc_buffer.h)
 
+#set_target_properties(concurrent_tests PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+
 Target_link_libraries( concurrent_tests winmm)

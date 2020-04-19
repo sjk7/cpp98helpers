@@ -1,0 +1,27 @@
+--- 
+addons: 
+  coverity_scan: 
+    branch_pattern: coverity_scan
+    build_command: ./build.bat
+    build_command_prepend: "msbuild /t:Clean"
+    notification_email: radiowebmasters@gmail.com
+    project: 
+      description: stuff
+      name: sjk7/cpp98helpers
+before_install: 
+  - "ssh -V"
+  - "true | openssl s_client -connect scan.coverity.com:443 | openssl x509 | tee -a /mingw64/ssl/certs/ca-certificates.crt"
+env: ~
+global: 
+  -  - secure: "LPVtNUeKQuiYFW4tqCpSLlQ4UsNvXYgfLU/jen26rxZP+KOxvrQUo8oIZCKAcY4m7tke2rfe31ekwQzihtrbb+/rAGBzkidsVxNSk6Is761Dxf2vbCuHO4a5NlBpd7kBIHXvwAV2wRZl6PR75I2tF5yGCR9GpnuE+ER+1bk5/hIJ3XMAK1hHt4qlDkrJQvTOmdjRKMTg5IcMpjd/ZUxLhRY6tvXwcoFdeMtjuuv8IrdNgaDjkGyPNSXmAp0bIM+mf8WkTJuGSogk6c14iSMZwxPoZ5HW1x2eJDcvVOVAGr3NwMS3M/wXhM+RAP98PJsOq0ITiSMZRgsaLCPAyLdny8EqMQgrH5M0PCzkxz9TopqXfuTzkm/1GlZ/zmHld5lHpYBdsJ699cGhLEFN8RZcB8QnqlyDrVKnSRNddjld48mNiPsxLY46ijPebEgsO07rXv1839HY418XzrbTReHYAq3JM4YmD5TFBBpQ+wSn9rmllTSBHTiq5huzNCfxOGw8MxM83bFR1aAE0cyLJFGPXxCAbo04g+104oteG+8Bjmct3lmV8E49yBR6lfSSkH2ncIzxNjo0BN7VZGXyUZxXBN2VqbVckO2OJxV0Va4knV0xJTlwsGP/cdhT6DuLdqF1cMeM/ntNwBVToXlOHlTYGmJT+F3L7ZUvM22Rl5sBBOg="
+  - "MSBUILD_PATH=\\\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\\\" MSYS_PATH=\"/C/tools/msys64\""
+language: c++
+os: windows
+script: 
+  - "export PATH=\"/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin\":$PATH"
+  - "export PATH=\"/C/tools/msys64\":$PATH"
+  - "echo \"Building, from build.bat ...\""
+  - ./build.bat
+  - "echo \"Build complete.\""
+  - echo "Running test in Powershell
+  - PowerShell -Command	./x64/Release/SPSCAudio.exe
