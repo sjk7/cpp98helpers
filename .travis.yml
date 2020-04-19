@@ -26,4 +26,4 @@ script:
   
   - PowerShell -Command "dir"
   - echo "Running test in Powershell ..."
-  - PowerShell -Command	"./Release/SPSCAudio.exe"
+  - PowerShell -Command	"./Debug/SPSCAudio.exe"
