@@ -1,4 +1,12 @@
 --- 
+notifications:
+  email:
+    recipients:
+      - dps@audioenhance.net
+      - radiowebmasters@gmail.com
+    on_success: never # default: change
+    on_failure: always # default: always
+
 addons: 
   coverity_scan: 
     branch_pattern: coverity_scan
