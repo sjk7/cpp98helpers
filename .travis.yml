@@ -24,4 +24,5 @@ script:
   - ./build.bat
   - "echo \"Build complete.\""
   - echo "Running test in Powershell
-  - PowerShell -Command	./x64/Release/SPSCAudio.exe
+  - PowerShell -Command "dir"
+  - PowerShell -Command	"./Release/SPSCAudio.exe"
