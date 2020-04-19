@@ -24,7 +24,7 @@ int main() {
     test::test_spsc_buffer();
 
     {
-        for (int i = 0; i < 500; ++i) {
+        for (int i = 0; i < 50; ++i) {
             test::test_threadex(i);
         }
     }
@@ -36,7 +36,7 @@ int main() {
     }
 
     test::test_atomic();
-    for (int i = 0; i < 40; ++i) {
+    for (int i = 0; i < 10; ++i) {
         test::test_thread(i);
     }
 

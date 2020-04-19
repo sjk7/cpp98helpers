@@ -57,7 +57,7 @@ template <size_t SIZE> struct spsc_data {
         return concurrent::safe_read_value(m_d.write_pos);
     }
     inline ULONGLONG total_read() const {
-        return concurrent::safe_read_value(m_d.read_pos);
+        return concurrent::safe_read_value(m_d.total_read);
     }
 
     inline ULONGLONG total_written() const {
@@ -67,7 +67,9 @@ template <size_t SIZE> struct spsc_data {
 
     // How many bytes can I read right now?
     inline LONG can_read() const {
-        LONG ret = (LONG)(total_written() - total_read());
+        const LONG w = total_written();
+        const LONG r = total_read();
+        LONG ret = w- r;
         assert(ret >= 0);
         return ret;
     }
@@ -108,7 +110,6 @@ template <size_t SIZE> struct spsc_data {
 
     inline ULONGLONG update_bytes_written(ULONGLONG bytes_written) {
         ULONGLONG new_bytes_written = m_d.total_written + bytes_written;
-        assert(new_bytes_written <= (LONG)SIZE);
         concurrent::safe_write_value(m_d.total_written, new_bytes_written);
         assert(m_d.total_written == new_bytes_written);
         return new_bytes_written;
@@ -116,7 +117,6 @@ template <size_t SIZE> struct spsc_data {
 
     inline ULONGLONG update_bytes_read(ULONGLONG bytes_read) {
         ULONGLONG new_bytes_read = m_d.total_read + bytes_read;
-        assert(new_bytes_read <= (LONG)SIZE);
         concurrent::safe_write_value(m_d.total_read, new_bytes_read);
         assert(m_d.total_read == new_bytes_read);
         return new_bytes_read;
@@ -127,10 +127,7 @@ template <size_t SIZE> struct spsc_data {
 };
 
 template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
-#ifdef SPSC_TESTS_ENABLED
-	template <typename SZ>
-	friend struct spsc_tester;
-#endif
+
     public:
     typedef char byte_type;
     typedef spsc_data<SIZE> data_t;
@@ -156,9 +153,9 @@ template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
 #define LONG ptrdiff_t;
 		const size_t ret = std::_cpp_min(can_read(), lenb);
 #else
-		const size_t ret = (std::min)(size_t(can_read()), lenb);
+        const size_t ret = (std::min)(size_t(data_t::can_read()), lenb);
 #endif
-		byte_type* read_ptr = &m_buf[read_pos()];
+        byte_type* read_ptr = &m_buf[data_t::read_pos()];
 		byte_type* read_end = read_ptr + ret;
 		size_t sz1 = ret; size_t sz2 = 0;
 		if (read_end > end()) {
@@ -172,6 +169,9 @@ template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
 		if (sz2) {
 			memcpy(target, read_ptr, sz2);
 		}
+        data_t::update_read_pos(ret);
+        data_t::update_bytes_read(ret);
+
 		return ret;
 		
 	}
@@ -222,7 +222,7 @@ template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
         return ret;
     }
 
-	byte_type* const buffer() {
+    inline byte_type*  buffer() {
 		return m_buf;
 	}
     private:
@@ -231,6 +231,7 @@ template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
 
 } // namespace concurrent
 
+#define SPSC_TESTS_ENABLED
 #ifdef SPSC_TESTS_ENABLED
 
 template <size_t SIZE>
@@ -306,9 +307,40 @@ void test_spsc_buffer_wrapping()
 	size_t read = buf.read(read_buf, 1000);
 	assert(read == 256);
 	assert(has_consec_values(read_buf, read_buf + 256));
+
+    assert(buf.can_read() == 0);
+    assert(buf.can_write() == buf.size_s());
+
+    assert(buf.total_read() == 256);
+    assert(buf.total_written() == 256);
+
+    wrote = buf.write(cbuf, 255);
+    assert(wrote == 255);
+    wrote = buf.write(&cbuf[255], 10);
+    assert(wrote == 1);
+
+    read = buf.read(read_buf, 256);
+    assert(has_consec_values(read_buf, read_buf + 256));
+
+    buf.clear();
+    assert(buf.can_read() == 0);
+    assert(buf.can_write() == buf.size_s());
+    assert(buf.total_read() == 0);
+    assert(buf.total_written() == 0);
+    assert(buf.read_pos() == 0);
+    assert(buf.write_pos() == 0);
+
+    wrote = buf.write(cbuf, 240);
+    assert(wrote == 240);
+    read = buf.read(read_buf, 200);
+    assert(read == 200);
+    assert(has_consec_values(read_buf, read_buf + 200));
+
+
 	
 
 }
+}
 #endif // SPSC_TESTS_ENABLED
 
-} // namespace test
+ // namespace test

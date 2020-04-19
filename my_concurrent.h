@@ -44,6 +44,12 @@
 #endif
 #endif
 
+#ifdef __MINGW32_MAJOR_VERSION
+#if (__cplusplus <= 199711L)
+#define constexpr
+#endif
+#endif
+
 namespace concurrent {
 
 
