@@ -1,0 +1,3 @@
+C:\Users\coolie\source\cpp98helpers\Release\SPSCAudio.exe.lastcodeanalysissucceeded
+C:\Users\coolie\source\cpp98helpers\Release\NativeCodeAnalysis.read.1.tlog
+C:\Users\coolie\source\cpp98helpers\Release\SPSCAudio.exe

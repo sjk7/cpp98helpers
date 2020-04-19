@@ -26,14 +26,14 @@
 #define TRACE printf
 #endif
 
-#if  ((_MSC_VER > 1899) && (WINVER > 0x0601) )
+#if ((_MSC_VER > 1899) && (WINVER > 0x0601))
 #define MY_NO_EXCEPT noexcept
 #else
 #define MY_NO_EXCEPT
 
 #ifdef _MSC_VER
-#pragma warning (disable : 4482) // non-standard enum use (qualified)
-#pragma warning (disable : 4355) // 'this' used in base member initializer list
+#pragma warning(disable : 4482) // non-standard enum use (qualified)
+#pragma warning(disable : 4355) // 'this' used in base member initializer list
 #endif
 #endif
 
@@ -52,12 +52,13 @@
 
 namespace concurrent {
 
-
 static inline LONG safe_read_value(volatile LONG& value) MY_NO_EXCEPT {
     return InterlockedExchangeAdd((volatile LONG*)&value, 0);
 }
-static inline ULONGLONG safe_read_value(volatile ULONGLONG& value) MY_NO_EXCEPT {
-    return InterlockedExchangeAdd64(reinterpret_cast<LONGLONG volatile*>(&value), 0);
+static inline ULONGLONG safe_read_value(
+    volatile ULONGLONG& value) MY_NO_EXCEPT {
+    return InterlockedExchangeAdd64(
+        reinterpret_cast<LONGLONG volatile*>(&value), 0);
 }
 
 static inline LONG safe_write_value(
@@ -67,7 +68,8 @@ static inline LONG safe_write_value(
 
 static inline ULONGLONG safe_write_value(
     volatile ULONGLONG& target, ULONGLONG new_value) MY_NO_EXCEPT {
-    return InterlockedExchange64(reinterpret_cast<LONGLONG volatile*>(&target), new_value);
+    return InterlockedExchange64(
+        reinterpret_cast<LONGLONG volatile*>(&target), new_value);
 }
 
 template <typename T> class atomic_int {
@@ -114,25 +116,24 @@ struct event {
     HANDLE m_h;
 };
 
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 #if (_MSC_VER <= 1200)
 #define DAMN_VC6
 #endif
 #endif
 
-
 struct STATES {
 
 #ifndef DAMN_VC6
-    static const LONG STATE_NONE  = 0;
+    static const LONG STATE_NONE = 0;
     static const LONG STATE_AWAKE = 1;
     static const LONG STATE_ASLEEP = 2;
     static const LONG STATE_QUITTING = 4;
     static const LONG STATE_ABORTED = 8;
     static const LONG STATE_QUIT = 16;
 #else
-	// errors? In VC6 you need to add m_thread_state_defs.cpp
-	static const LONG STATE_NONE;
+    // errors? In VC6 you need to add m_thread_state_defs.cpp
+    static const LONG STATE_NONE;
     static const LONG STATE_AWAKE;
     static const LONG STATE_ASLEEP;
     static const LONG STATE_QUITTING;
@@ -181,7 +182,7 @@ template <typename CRTP> class thread {
 
     DWORD threadloop() {
 
-        HANDLE events[2] = {m_event_notify_quit,m_event_wake};
+        HANDLE events[2] = {m_event_notify_quit, m_event_wake};
 
         while (true) {
 
@@ -215,7 +216,6 @@ template <typename CRTP> class thread {
                         state_set(states::STATE_QUITTING);
                         break;
                     }
-                   
                 }
             } else {
                 state_set(states::STATE_QUITTING);
@@ -234,6 +234,10 @@ template <typename CRTP> class thread {
 
     void clean_exit() {
 
+        states st = state();
+        if (!m_thread) {
+            return;
+        }
         DWORD d1 = timeGetTime();
         SetEvent(m_event_notify_quit);
         int slept = 0;
@@ -247,7 +251,7 @@ template <typename CRTP> class thread {
             Sleep(1);
             ++slept;
         }
-                
+
         DWORD dwWait = WaitForSingleObject(m_event_quit, MY_INFINITY);
         assert(dwWait != WAIT_TIMEOUT
             && "~thread: timed out waiting for thread to exit.");
@@ -295,7 +299,7 @@ template <typename CRTP> class thread {
     }
     inline int id() const { return m_id; }
 
-    ~thread() { 
+    ~thread() {
 
         if (m_thread && GetCurrentThread() == m_thread) {
             assert(
@@ -304,8 +308,7 @@ template <typename CRTP> class thread {
                 == 0);
         }
 
-
-        clean_exit(); 
+        clean_exit();
     }
 
     inline bool have_quit() {
@@ -314,6 +317,8 @@ template <typename CRTP> class thread {
         }
         return false;
     }
+
+    void quit() { clean_exit(); }
 
     inline DWORD start(DWORD max_wait = (DWORD)-1) {
 
@@ -353,7 +358,7 @@ template <typename CRTP> class thread {
     mutable event m_event_quit;
     mutable event m_event_aborted;
     DWORD m_thread_id;
-    HANDLE m_thread;
+    volatile HANDLE m_thread;
 
     mutable volatile LONG m_state;
     int m_id;
@@ -459,7 +464,7 @@ static inline void make_race(int i = -1) {
     mythreadex t2(racy_threadfun, i + 1000);
     assert(t.id() == i);
     assert(t2.id() == i + 1000);
-    
+
     t.start();
     t2.start();
 

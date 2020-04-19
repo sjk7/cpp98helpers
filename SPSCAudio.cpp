@@ -19,7 +19,7 @@ int main() {
 #endif
 
     timeBeginPeriod(1);
-	test::test_spsc_buffer_wrapping();
+    test::test_spsc_buffer_wrapping();
     test::test_spsc_buffer();
 
     {
@@ -38,9 +38,6 @@ int main() {
     for (int i = 0; i < 10; ++i) {
         test::test_thread(i);
     }
-
-
-
 
     timeEndPeriod(1);
     return 0;
