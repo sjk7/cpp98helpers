@@ -35,6 +35,7 @@ script:
   - PowerShell -Command "dir"
   - echo "Running test in Powershell ..."
   - PowerShell -Command	"./Debug/SPSCAudio.exe"
-
+  - PowerShell -Command cmake ./cmake/concurrent_tests -G "MinGW Makefiles"
+  
 
   

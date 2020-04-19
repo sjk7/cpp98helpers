@@ -1,0 +1,3 @@
+V:/shared/Docs/cpp98helpers/CMakeFiles/concurrent_tests.dir
+V:/shared/Docs/cpp98helpers/CMakeFiles/edit_cache.dir
+V:/shared/Docs/cpp98helpers/CMakeFiles/rebuild_cache.dir

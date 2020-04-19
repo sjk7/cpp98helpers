@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+V:/shared/Docs/cpp98helpers/SPSCAudio.cpp
+iostream
+-
+my_concurrent.h
+V:/shared/Docs/cpp98helpers/my_concurrent.h
+my_spsc_buffer.h
+V:/shared/Docs/cpp98helpers/my_spsc_buffer.h
+
+V:/shared/Docs/cpp98helpers/my_concurrent.h
+Windows.h
+-
+mmsystem.h
+-
+cassert
+-
+cerrno
+-
+cstdio
+-
+
+V:/shared/Docs/cpp98helpers/my_spsc_buffer.h
+my_concurrent.h
+V:/shared/Docs/cpp98helpers/my_concurrent.h
+algorithm
+-
+
