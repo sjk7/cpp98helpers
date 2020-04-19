@@ -9,7 +9,7 @@ notifications:
 
 addons: 
   coverity_scan: 
-    branch_pattern: master
+    branch_pattern: coverity_scan
     build_command: ./build.bat
     build_command_prepend: "msbuild /t:Clean"
     notification_email: radiowebmasters@gmail.com
