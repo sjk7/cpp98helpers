@@ -1,3 +1,0 @@
-V:\shared\Docs\cpp98helpers\Release\SPSCAudio.exe.lastcodeanalysissucceeded
-V:\shared\Docs\cpp98helpers\Release\NativeCodeAnalysis.read.1.tlog
-V:\shared\Docs\cpp98helpers\Release\SPSCAudio.exe

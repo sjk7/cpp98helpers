@@ -23,6 +23,7 @@ script:
   - "echo \"Building, from build.bat ...\""
   - ./build.bat
   - "echo \"Build complete.\""
-  - echo "Running test in Powershell
+  
   - PowerShell -Command "dir"
+  - echo "Running test in Powershell ..."
   - PowerShell -Command	"./Release/SPSCAudio.exe"
