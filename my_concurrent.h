@@ -157,13 +157,19 @@ struct STATES {
 template <typename CRTP> class thread {
 
     friend CRTP; /// hmmm: how to 98'ify this??
+	// ^^ can't find a way -- so we have to make
+	// things unnec' public!
 
     // private constructor guards against someone using the wrong class!
     thread(int id = -1)
-        : m_thread_id(0)
+        : m_event_notify_quit(0, 1, 0, 0)
+        , m_thread_id(0)
+
         , m_thread(CreateThread(
               0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id))
+
         , m_state(states::STATE_NONE)
+
         , m_id(id)
 
     {
@@ -234,9 +240,12 @@ template <typename CRTP> class thread {
 
     void clean_exit() {
 
-        states st = state();
         if (!m_thread) {
             return;
+        }
+
+        if (state() == states::STATE_NONE) {
+            start();
         }
         DWORD d1 = timeGetTime();
         SetEvent(m_event_notify_quit);
@@ -276,14 +285,7 @@ template <typename CRTP> class thread {
 
         m_thread = CreateThread(
             0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id);
-        DWORD wait = WaitForSingleObject(m_event, MY_INFINITY);
-        assert(wait != WAIT_TIMEOUT);
-#ifndef ETIMEDOUT
-#define ETIMEDOUT 3447
-#endif
-        if (wait == WAIT_TIMEOUT) {
-            return -ETIMEDOUT;
-        }
+
         return 0;
     }
 
@@ -295,7 +297,14 @@ template <typename CRTP> class thread {
     // is also thread safe.
     inline bool has_been_notified_to_quit() const {
         DWORD wait = ::WaitForSingleObject(m_event_notify_quit, 0);
-        return (wait != WAIT_TIMEOUT);
+        if (wait != WAIT_TIMEOUT) {
+            DWORD check = ::WaitForSingleObject(m_event_notify_quit, 0);
+            assert(check == 0); // this is a MANUAL reset event, so its always
+                                // set until we ResetEvent() on it.
+            (void)check;
+            return true;
+        }
+        return false;
     }
     inline int id() const { return m_id; }
 
@@ -318,6 +327,7 @@ template <typename CRTP> class thread {
         return false;
     }
 
+    void stop() { clean_exit(); }
     void quit() { clean_exit(); }
 
     inline DWORD start(DWORD max_wait = (DWORD)-1) {
@@ -472,6 +482,38 @@ static inline void make_race(int i = -1) {
         Sleep(1000);
         TRACE("Racy value is %llu\n", racy);
     }
+}
+
+static int stop_start_thread_fun(void* ptr) {
+    TRACE("stop_start_thread_fun_sleeps a bit ...\n");
+    mythreadex* pt = (mythreadex*)ptr;
+    int i = 0;
+    while (i++ < 1000) {
+        Sleep(1);
+        if (pt->has_been_notified_to_quit()) {
+            TRACE("Stop_start_thread_fun: time to quit, better return ...\n");
+            return 0;
+        }
+    }
+    return 0;
+}
+static inline void test_thread_stop_start() {
+
+    mythreadex t(stop_start_thread_fun, 0);
+    int i = 0;
+
+    while (i++ < 100) {
+        DWORD dw1 = timeGetTime();
+        t.stop();
+        DWORD dw2 = timeGetTime();
+        TRACE("thread took %ld ms to stop()\n", (long)(dw2 - dw1));
+        dw1 = timeGetTime();
+        DWORD dw = t.start();
+        dw2 = timeGetTime();
+        assert(dw == 1);
+        TRACE("Thread took %ld ms to start again\n", (long)(dw2 - dw1));
+    }
+    Sleep(2000);
 }
 } // namespace test
 #endif

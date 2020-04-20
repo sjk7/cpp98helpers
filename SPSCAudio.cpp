@@ -19,6 +19,9 @@ int main() {
 #endif
 
     timeBeginPeriod(1);
+
+    test::test_thread_stop_start();
+
     test::test_spsc_buffer_wrapping();
     test::test_spsc_buffer();
 
