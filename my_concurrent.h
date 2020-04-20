@@ -72,11 +72,12 @@ static inline ULONGLONG safe_write_value(
         reinterpret_cast<LONGLONG volatile*>(&target), new_value);
 }
 
+#pragma warning(disable : 4197)
 template <typename T> class atomic_int {
     private:
-    T m_val;
+    volatile T m_val;
     inline void setval(T newval) {
-        safe_write_value(m_val, newval);
+        safe_write_value((volatile ULONGLONG&)m_val, (ULONGLONG)newval);
         assert(m_val = newval);
     }
 
@@ -85,9 +86,15 @@ template <typename T> class atomic_int {
     explicit atomic_int() : m_val(0){};
     atomic_int(T newval) : m_val(newval) {}
     inline T get() const { return m_val; }
-    operator T() const { return m_val; }
+    explicit operator T() const { return m_val; }
+    T operator==(const T value) const { return get() == value; }
     atomic_int& operator=(const T value) {
         setval(value);
+        assert(m_val == value);
+        return *this;
+    }
+    atomic_int& operator+(const T value) {
+        ::InterlockedAdd64((LONGLONG*)m_val, value);
         return *this;
     }
 };
@@ -104,7 +111,7 @@ struct event {
     explicit event(LPSECURITY_ATTRIBUTES lpEventAttributes = 0,
         BOOL bManualReset = 0, BOOL bInitialState = 0, TCHAR* lpName = 0)
         : m_h(CreateEvent(
-            lpEventAttributes, bManualReset, bInitialState, lpName)) {}
+              lpEventAttributes, bManualReset, bInitialState, lpName)) {}
 
     inline operator HANDLE() { return m_h; }
     ~event() {
@@ -157,8 +164,8 @@ struct STATES {
 template <typename CRTP> class thread {
 
     friend CRTP; /// hmmm: how to 98'ify this??
-	// ^^ can't find a way -- so we have to make
-	// things unnec' public!
+    // ^^ can't find a way -- so we have to make
+    // things unnec' public!
 
     // private constructor guards against someone using the wrong class!
     thread(int id = -1)
@@ -205,7 +212,15 @@ template <typename CRTP> class thread {
                 int ret = 0;
                 while (ret == 0) {
                     ret = crtp.on_thread();
-                    wait = ::WaitForSingleObject(m_event_notify_quit, 0);
+                    if (ret == 0) {
+                        wait = ::WaitForSingleObject(m_event_notify_quit, 0);
+                    } else {
+                        if (ret) {
+                            state_set(states::STATE_QUITTING);
+                            should_quit = true;
+                            break;
+                        }
+                    }
                     if (wait != WAIT_TIMEOUT) {
                         state_set(states::STATE_QUITTING);
                         should_quit = true;
@@ -216,6 +231,7 @@ template <typename CRTP> class thread {
                     continue;
                 } else {
                     if (ret < 0) {
+                        state_set(states::STATE_QUITTING);
                         state_set(states::STATE_ABORTED);
                         SetEvent(m_event_aborted);
                     } else {
@@ -224,6 +240,8 @@ template <typename CRTP> class thread {
                     }
                 }
             } else {
+                SetEvent(
+                    m_event_woke); // set this so anyone waiting does not block
                 state_set(states::STATE_QUITTING);
                 break;
             }
@@ -240,15 +258,17 @@ template <typename CRTP> class thread {
 
     void clean_exit() {
 
+        DWORD d1 = timeGetTime();
         if (!m_thread) {
             return;
         }
 
-        if (state() == states::STATE_NONE) {
-            start();
-        }
-        DWORD d1 = timeGetTime();
         SetEvent(m_event_notify_quit);
+        if (state() == states::STATE_NONE) {
+            DWORD dwstart = start();
+            assert(dwstart == 1);
+        }
+
         int slept = 0;
 
         while (state() == states::STATE_AWAKE) {
@@ -267,6 +287,13 @@ template <typename CRTP> class thread {
         DWORD d2 = timeGetTime();
         TRACE("thread, with id: %d took %ld ms to die. (slept=%d)\n",
             this->m_id, (long)d2 - d1, slept);
+
+        ResetEvent(m_event);
+        // ResetEvent(m_event_notify_quit); <-- we leave this one in its current
+        // state until a new thread is created.
+        ResetEvent(m_event_quit);
+        ResetEvent(m_event_wake);
+        ResetEvent(m_event_woke);
     }
 
     int create() {
@@ -294,19 +321,37 @@ template <typename CRTP> class thread {
 
     // This is thread safe. You can call it from your own thread loop
     // to see if you should return. Or, you can look at state(), which
-    // is also thread safe.
-    inline bool has_been_notified_to_quit() const {
+    // is also thread safe. This waits on a manual reset event, so once it's
+    // set, it stays that way until a new thread is created.
+    inline bool has_been_notified_to_quit(DWORD wait_timeout = 0) const {
+
         DWORD wait = ::WaitForSingleObject(m_event_notify_quit, 0);
         if (wait != WAIT_TIMEOUT) {
-            DWORD check = ::WaitForSingleObject(m_event_notify_quit, 0);
-            assert(check == 0); // this is a MANUAL reset event, so its always
-                                // set until we ResetEvent() on it.
-            (void)check;
             return true;
         }
         return false;
     }
     inline int id() const { return m_id; }
+
+    inline DWORD thread_id() const { return m_thread_id; }
+    inline DWORD set_thread_priority(int new_priority) {
+        DWORD ret = 0;
+        if (m_thread) {
+            ret = ::SetThreadPriority(m_thread, new_priority);
+        }
+        assert(m_thread
+            && "setting thread priority when there is no thread has no "
+               "effect!");
+        return ret;
+    }
+
+    inline int thread_priority() const {
+        if (m_hthread) {
+            return ::GetThreadPriority(m_thread);
+        } else {
+            return 0;
+        }
+    }
 
     ~thread() {
 
@@ -375,6 +420,9 @@ template <typename CRTP> class thread {
 
     void state_set(states newstate) {
         concurrent::safe_write_value(m_state, (LONG)newstate);
+        if ( (newstate & states::STATE_QUITTING) == states::STATE_QUITTING) {
+            SetEvent(m_event_notify_quit);
+        }
         assert(state() == newstate);
     }
 }; // class thread
@@ -386,7 +434,7 @@ template <typename CRTP> class thread {
 namespace test {
 
 static inline void test_atomic() {
-    concurrent::atomic_int<LONG> myint = 0;
+    concurrent::atomic_int<LONG> myint = (LONG)0;
     assert(myint == 0);
     myint = 77;
     assert(myint.get() == 77);
@@ -394,6 +442,7 @@ static inline void test_atomic() {
     myint = myint + 1;
     assert(myint == 78);
 }
+
 class mythread : public concurrent::thread<mythread> {
 
     public:

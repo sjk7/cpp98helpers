@@ -37,12 +37,14 @@ struct d {
         , write_pos(0)
         , total_read(0)
         , total_written(0)
-        , end_of_data((ULONGLONG)-1) {}
+        , end_of_data((ULONGLONG)-1),
+		thread_priority(THREAD_PRIORITY_NORMAL){}
     volatile mutable LONG read_pos;
     volatile mutable LONG write_pos;
     volatile mutable ULONGLONG total_read;
     volatile mutable ULONGLONG total_written;
     volatile mutable ULONGLONG end_of_data;
+    volatile int thread_priority;
 };
 
 template <size_t SIZE> struct spsc_data {
