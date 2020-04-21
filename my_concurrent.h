@@ -25,6 +25,9 @@
 #ifndef TRACE
 #define TRACE printf
 #endif
+#include "../../../../Program Files (x86)/Windows Kits/8.1/Include/um/winnt.h"
+#include "../../../../Program Files (x86)/Windows Kits/10/Include/10.0.18362.0/um/winnt.h"
+#include "../../../../Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/include/intrin0.h"
 
 #if ((_MSC_VER > 1899) && (WINVER > 0x0601))
 #define MY_NO_EXCEPT noexcept
@@ -53,7 +56,7 @@
 namespace concurrent {
 
 static inline LONG safe_read_value(volatile LONG& value) MY_NO_EXCEPT {
-    return InterlockedExchangeAdd((volatile LONG*)&value, 0);
+    return InterlockedExchangeAdd((LONG*)&value, 0);
 }
 static inline ULONGLONG safe_read_value(
     volatile ULONGLONG& value) MY_NO_EXCEPT {
@@ -63,7 +66,7 @@ static inline ULONGLONG safe_read_value(
 
 static inline LONG safe_write_value(
     volatile LONG& target, LONG new_value) MY_NO_EXCEPT {
-    return InterlockedExchange(&target, new_value);
+    return InterlockedExchange((LONG*)&target, new_value);
 }
 
 static inline ULONGLONG safe_write_value(
@@ -76,9 +79,9 @@ static inline ULONGLONG safe_write_value(
 template <typename T> class atomic_int {
     private:
     volatile T m_val;
-    inline void setval(T newval) {
+    inline void setval(const T newval) {
         safe_write_value((volatile ULONGLONG&)m_val, (ULONGLONG)newval);
-        assert(m_val = newval);
+        assert(newval == m_val);
     }
 
     public:
@@ -111,7 +114,7 @@ struct event {
     explicit event(LPSECURITY_ATTRIBUTES lpEventAttributes = 0,
         BOOL bManualReset = 0, BOOL bInitialState = 0, TCHAR* lpName = 0)
         : m_h(CreateEvent(
-              lpEventAttributes, bManualReset, bInitialState, lpName)) {}
+            lpEventAttributes, bManualReset, bInitialState, lpName)) {}
 
     inline operator HANDLE() { return m_h; }
     ~event() {
@@ -171,12 +174,8 @@ template <typename CRTP> class thread {
     thread(int id = -1)
         : m_event_notify_quit(0, 1, 0, 0)
         , m_thread_id(0)
-
-        , m_thread(CreateThread(
-              0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id))
-
+        , m_thread(0)
         , m_state(states::STATE_NONE)
-
         , m_id(id)
 
     {
@@ -251,8 +250,8 @@ template <typename CRTP> class thread {
         m_thread = 0;
         CloseHandle(t);
         m_thread_id = 0;
-        SetEvent(m_event_quit);
         state_set(states(m_state | states::STATE_QUIT));
+        SetEvent(m_event_quit);
         return 0;
     }
 
@@ -285,22 +284,26 @@ template <typename CRTP> class thread {
         assert(dwWait != WAIT_TIMEOUT
             && "~thread: timed out waiting for thread to exit.");
         DWORD d2 = timeGetTime();
+        state_set(states::STATE_NONE);
         TRACE("thread, with id: %d took %ld ms to die. (slept=%d)\n",
             this->m_id, (long)d2 - d1, slept);
 
         ResetEvent(m_event);
-        // ResetEvent(m_event_notify_quit); <-- we leave this one in its current
-        // state until a new thread is created.
+        ResetEvent(m_event_notify_quit); 
         ResetEvent(m_event_quit);
         ResetEvent(m_event_wake);
         ResetEvent(m_event_woke);
     }
 
     int create() {
-        if (!have_quit()) {
-            assert(
-                "thread: call to create() when we have a thread already" == 0);
-            return -EEXIST;
+
+        if (state() != states::STATE_NONE) {
+
+            if (!have_quit()) {
+                assert("thread: call to create() when we have a thread already"
+                    == 0);
+                return -EEXIST;
+            }
         }
         assert(m_thread == 0);
 
@@ -313,6 +316,8 @@ template <typename CRTP> class thread {
         m_thread = CreateThread(
             0, 0, &thread_proc, this, CREATE_SUSPENDED, &m_thread_id);
 
+        state_set(states::STATE_NONE);
+
         return 0;
     }
 
@@ -320,13 +325,15 @@ template <typename CRTP> class thread {
     NO_COPY_CLASS(thread);
 
     // This is thread safe. You can call it from your own thread loop
-    // to see if you should return. Or, you can look at state(), which
-    // is also thread safe. This waits on a manual reset event, so once it's
-    // set, it stays that way until a new thread is created.
+    // to see if you should return. If you don't want to block, wait_timeout
+    // is OK to be set to zero.
     inline bool has_been_notified_to_quit(DWORD wait_timeout = 0) const {
 
-        DWORD wait = ::WaitForSingleObject(m_event_notify_quit, 0);
+        DWORD wait = ::WaitForSingleObject(m_event_notify_quit, wait_timeout);
         if (wait != WAIT_TIMEOUT) {
+            return true;
+        }
+        if (state() <= states::STATE_NONE || state() > states::STATE_ASLEEP) {
             return true;
         }
         return false;
@@ -380,13 +387,14 @@ template <typename CRTP> class thread {
         if (max_wait == (DWORD)-1) {
             max_wait = MY_INFINITY;
         }
-        if (have_quit()) {
+        if (have_quit() || state() == states::STATE_NONE) {
             int c = create();
             if (c) {
                 assert("Create() thread failed" == 0);
                 return c;
             }
         }
+        ResetEvent(m_event_notify_quit);
         DWORD ret = ::ResumeThread(m_thread);
 
         if (ret == 1) {
@@ -418,9 +426,12 @@ template <typename CRTP> class thread {
     mutable volatile LONG m_state;
     int m_id;
 
-    void state_set(states newstate) {
+    void state_set(const states newstate) {
+        if (newstate == 20) {
+            TRACE("ffs");
+        }
         concurrent::safe_write_value(m_state, (LONG)newstate);
-        if ( (newstate & states::STATE_QUITTING) == states::STATE_QUITTING) {
+        if ((newstate & states::STATE_QUITTING) == states::STATE_QUITTING) {
             SetEvent(m_event_notify_quit);
         }
         assert(state() == newstate);
