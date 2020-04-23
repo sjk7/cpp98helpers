@@ -19,7 +19,7 @@ int main() {
 #endif
 
     timeBeginPeriod(1);
-
+	test::test_atomic();
     test::test_thread_stop_start();
 
     test::test_spsc_buffer_wrapping();
@@ -37,7 +37,7 @@ int main() {
         }
     }
 
-    test::test_atomic();
+    
     for (int i = 0; i < 10; ++i) {
         test::test_thread(i);
     }

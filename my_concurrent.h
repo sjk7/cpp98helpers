@@ -25,10 +25,8 @@
 #ifndef TRACE
 #define TRACE printf
 #endif
-#include "../../../../Program Files (x86)/Windows Kits/8.1/Include/um/winnt.h"
-#include "../../../../Program Files (x86)/Windows Kits/10/Include/10.0.18362.0/um/winnt.h"
-#include "../../../../Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/include/intrin0.h"
 
+#include "./my/my.h" 
 #if ((_MSC_VER > 1899) && (WINVER > 0x0601))
 #define MY_NO_EXCEPT noexcept
 #else
@@ -44,6 +42,10 @@
 #if (_MSC_VER <= 1200)
 #define MSVC6
 #define constexpr
+
+#ifndef LONG
+#define LONG long;
+#endif
 #endif
 #endif
 
@@ -79,27 +81,30 @@ static inline ULONGLONG safe_write_value(
 template <typename T> class atomic_int {
     private:
     volatile T m_val;
-    inline void setval(const T newval) {
-        safe_write_value((volatile ULONGLONG&)m_val, (ULONGLONG)newval);
-        assert(newval == m_val);
-    }
 
     public:
     NO_COPY_CLASS(atomic_int);
+
     explicit atomic_int() : m_val(0){};
     atomic_int(T newval) : m_val(newval) {}
     inline T get() const { return m_val; }
     explicit operator T() const { return m_val; }
     T operator==(const T value) const { return get() == value; }
+	    inline void setval(const T newval) {
+        safe_write_value((volatile T&)m_val, newval);
+        assert(newval == m_val);
+    }
     atomic_int& operator=(const T value) {
         setval(value);
         assert(m_val == value);
         return *this;
     }
+	/*/
     atomic_int& operator+(const T value) {
         ::InterlockedAdd64((LONGLONG*)m_val, value);
         return *this;
     }
+	/*/
 };
 
 #ifdef _DEBUG
@@ -164,6 +169,19 @@ struct STATES {
     LONG m_value;
 };
 
+// NOTE: A thread class that does not use virtual dispatch.
+// Your onthread() could return the following values:
+// 0    :   Thread will continue immediately after checking if the thread has an
+//          exit request. If there is one, the thread exits and does not call
+//          you again.
+//
+// >= 1 :   Thread will go back into STATE_ASLEEP mode, but will continue to
+// check
+//          if there are any exit requests. If there is one, the thread exits
+//          and does not call you again.
+//
+//  < 0 :   Thread will exit as fast as possible,
+//          and of course will not call you again until (re)start()ed.
 template <typename CRTP> class thread {
 
     friend CRTP; /// hmmm: how to 98'ify this??
@@ -199,6 +217,7 @@ template <typename CRTP> class thread {
         while (true) {
 
             bool should_quit = false;
+        asleep:
             state_set(states::STATE_ASLEEP);
             SetEvent(m_event);
             DWORD wait = ::WaitForMultipleObjects(2, events, FALSE, INFINITE);
@@ -214,10 +233,13 @@ template <typename CRTP> class thread {
                     if (ret == 0) {
                         wait = ::WaitForSingleObject(m_event_notify_quit, 0);
                     } else {
-                        if (ret) {
+                        if (ret < 0) {
                             state_set(states::STATE_QUITTING);
                             should_quit = true;
                             break;
+                        } else {
+                            // > 1 returned from thread func: go back to sleep.
+                            goto asleep;
                         }
                     }
                     if (wait != WAIT_TIMEOUT) {
@@ -289,7 +311,7 @@ template <typename CRTP> class thread {
             this->m_id, (long)d2 - d1, slept);
 
         ResetEvent(m_event);
-        ResetEvent(m_event_notify_quit); 
+        ResetEvent(m_event_notify_quit);
         ResetEvent(m_event_quit);
         ResetEvent(m_event_wake);
         ResetEvent(m_event_woke);
@@ -353,7 +375,7 @@ template <typename CRTP> class thread {
     }
 
     inline int thread_priority() const {
-        if (m_hthread) {
+        if (m_thread) {
             return ::GetThreadPriority(m_thread);
         } else {
             return 0;
@@ -382,6 +404,8 @@ template <typename CRTP> class thread {
     void stop() { clean_exit(); }
     void quit() { clean_exit(); }
 
+    // returns the result of waiting for the thread to start.
+    // Same return value semantics as WaitForSingleObject
     inline DWORD start(DWORD max_wait = (DWORD)-1) {
 
         if (max_wait == (DWORD)-1) {
@@ -398,11 +422,22 @@ template <typename CRTP> class thread {
         DWORD ret = ::ResumeThread(m_thread);
 
         if (ret == 1) {
-            ::WaitForSingleObject(m_event, max_wait);
+            ret = ::WaitForSingleObject(m_event, max_wait);
             // TRACE("This is the only place we set event[0] %i\n", m_id);
             SetEvent(m_event_wake);
-            ::WaitForSingleObject(m_event_woke, max_wait);
+            ret = ::WaitForSingleObject(m_event_woke, max_wait);
+
+        } else {
+            if (state() == states::STATE_ASLEEP) {
+                SetEvent(m_event_wake);
+                ret = ::WaitForSingleObject(m_event_woke, max_wait);
+            }
         }
+
+        if (max_wait) {
+            assert(ret != WAIT_TIMEOUT);
+        }
+
         return ret;
     }
 
@@ -442,16 +477,21 @@ template <typename CRTP> class thread {
 
 #define TEST_MY_CONCURRENT
 #ifdef TEST_MY_CONCURRENT
+#include <atomic>
 namespace test {
 
 static inline void test_atomic() {
     concurrent::atomic_int<LONG> myint = (LONG)0;
+	
     assert(myint == 0);
     myint = 77;
-    assert(myint.get() == 77);
+	LONG i = myint.get();
+    assert(i == 77);
     assert(myint == 77);
-    myint = myint + 1;
-    assert(myint == 78);
+	 myint.setval(78);
+	//myint = myint + 1; <-- NOT atomic, even on std::atomic, so not included.
+	 assert(myint == 78);
+	
 }
 
 class mythread : public concurrent::thread<mythread> {
@@ -496,7 +536,7 @@ static inline void test_thread(int i = -1) {
     mythread::state_t state = t.state();
     assert(state == mythread::states::STATE_NONE);
     int start_val = t.start();
-    assert(start_val == 1);
+    assert(start_val == 0);
     state = t.state();
     assert(state >= mythread::state_t::STATE_NONE);
 }
@@ -512,7 +552,7 @@ static inline void test_threadex(int i = -1) {
     mythreadex::state_t state = t.state();
     assert(state == mythreadex::state_t::STATE_NONE);
     int start_val = t.start();
-    assert(start_val == 1);
+    assert(start_val == 0);
     state = t.state();
     assert(state >= mythreadex::state_t::STATE_NONE);
 }
@@ -525,7 +565,7 @@ static int racy_threadfun(void* ptr) {
     (void)pt;
     ++racy;
     if (racy > 10000) {
-        return 1;
+        return -1;
     }
     return 0;
 }
@@ -539,7 +579,7 @@ static inline void make_race(int i = -1) {
     t2.start();
 
     while (!t2.have_quit()) {
-        Sleep(1000);
+        Sleep(100);
         TRACE("Racy value is %llu\n", racy);
     }
 }
@@ -570,7 +610,7 @@ static inline void test_thread_stop_start() {
         dw1 = timeGetTime();
         DWORD dw = t.start();
         dw2 = timeGetTime();
-        assert(dw == 1);
+        assert(dw == 0);
         TRACE("Thread took %ld ms to start again\n", (long)(dw2 - dw1));
     }
     Sleep(2000);

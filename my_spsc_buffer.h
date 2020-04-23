@@ -4,31 +4,6 @@
 
 #include <algorithm>
 // my_spsc_buffer.h
-namespace numbers {
-static const size_t kB = 1024;
-static const size_t TWOkB = kB * 2;
-static const size_t FOURkB = kB * 4;
-static const size_t EIGHTkB = kB * 8;
-static const size_t SIXTEENkB = kB * 16;
-static const size_t THIRTY_TWOkB = kB * 32;
-static const size_t SIXTY_FOURkB = kB * 64;
-static const size_t HUNDRED_TWENTY_EIGHTkB = kB * 128;
-static const size_t TWO_HUNDRED_FIFTY_SIXkB = kB * 256;
-static const size_t FIVE_HUNDRED_TWELVEkB = kB * 512;
-static const size_t mB = kB * 1024;
-
-template <size_t POW2NUM> static constexpr inline bool is_power_of_2() {
-    return (POW2NUM != 0) && ((POW2NUM & (POW2NUM - 1)) == 0);
-}
-template <typename T, size_t POW2NUM> inline const T modulo_power_of_2(T n) {
-#if _MSC_VER > 1899
-    static_assert(is_power_of_2<POW2NUM>(),
-        "modulo_power_of_2: number must be a power of 2.");
-#endif
-    return (n & (POW2NUM - 1));
-}
-
-} // namespace numbers
 
 namespace concurrent {
 struct d {
@@ -37,8 +12,8 @@ struct d {
         , write_pos(0)
         , total_read(0)
         , total_written(0)
-        , end_of_data((ULONGLONG)-1),
-		thread_priority(THREAD_PRIORITY_NORMAL){}
+        , end_of_data((ULONGLONG)-1)
+        , thread_priority(THREAD_PRIORITY_NORMAL) {}
     volatile mutable LONG read_pos;
     volatile mutable LONG write_pos;
     volatile mutable ULONGLONG total_read;
@@ -50,7 +25,8 @@ struct d {
 template <size_t SIZE> struct spsc_data {
 
     spsc_data() {
-        assert(numbers::is_power_of_2<SIZE>()
+
+        assert(my::numbers::is_power_of_2<SIZE>()
             && "spsc_data: SIZE not a power of 2!");
     }
     NO_COPY_CLASS(spsc_data);
@@ -110,6 +86,7 @@ template <size_t SIZE> struct spsc_data {
     protected:
     // returns the *new* value set
     inline LONG update_write_pos(LONG bytes_written) {
+        using namespace my;
         LONG my_write_pos = bytes_written + m_d.write_pos;
         my_write_pos = numbers::modulo_power_of_2<LONG, SIZE>(my_write_pos);
         assert(my_write_pos < (LONG)SIZE);
@@ -119,6 +96,7 @@ template <size_t SIZE> struct spsc_data {
     }
 
     inline LONG update_read_pos(LONG bytes_read) {
+        using namespace my;
         LONG my_read_pos = bytes_read + m_d.read_pos;
         my_read_pos = numbers::modulo_power_of_2<LONG, SIZE>(my_read_pos);
         assert(my_read_pos < (LONG)SIZE);
@@ -166,12 +144,9 @@ template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
     size_t read(byte_type* target, size_t lenb) {
         using namespace std;
         assert(target && lenb);
-#ifdef MSVC6
-#define LONG ptrdiff_t;
-        const size_t ret = std::_cpp_min(size_t(data_t::can_read()), lenb);
-#else
-        const size_t ret = (std::min)(size_t(data_t::can_read()), lenb);
-#endif
+
+        const size_t ret = my::cppmin(size_t(data_t::can_read()), lenb);
+
         size_t my_read_pos = (size_t)data_t::read_pos();
         byte_type* read_ptr = &m_buf[my_read_pos];
         assert(my_read_pos < SIZE);
@@ -206,12 +181,8 @@ template <size_t SIZE> class spsc_buffer : public spsc_data<SIZE> {
         if (space == 0) {
             return 0;
         }
-#ifdef MSVC6
-#define LONG ptrdiff_t;
-        const size_t ret = std::_cpp_min(space, lenb);
-#else
-        const size_t ret = (std::min)(space, lenb);
-#endif
+
+        const size_t ret = my::cppmin(space, lenb);
 
         if (ret) {
 
