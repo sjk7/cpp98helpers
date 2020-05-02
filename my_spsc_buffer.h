@@ -33,7 +33,12 @@ template <size_t SIZE> struct spsc_data {
 
     inline size_t size() const { return SIZE; }
     inline LONG size_s() const { return (LONG)SIZE; }
-
+    inline float percent_full() const {
+        float cr = (float)can_read();
+        float si = (float)size();
+        float fract = cr / si;
+        return fract * 100.0f;
+    }
     inline LONG read_pos() const {
         return concurrent::safe_read_value(m_d.read_pos);
     }
