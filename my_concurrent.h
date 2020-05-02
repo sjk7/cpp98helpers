@@ -26,39 +26,14 @@
 #define TRACE printf
 #endif
 
-#include "./my/my.h" 
-#if ((_MSC_VER > 1899) && (WINVER > 0x0601))
-#define MY_NO_EXCEPT noexcept
-#else
-#define MY_NO_EXCEPT
-
-#ifdef _MSC_VER
-#pragma warning(disable : 4482) // non-standard enum use (qualified)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list
-#endif
-#endif
-
-#ifdef _MSC_VER
-#if (_MSC_VER <= 1200)
-#define MSVC6
-#define constexpr
-
-#ifndef LONG
-#define LONG long;
-#endif
-#endif
-#endif
-
-#ifdef __MINGW32_MAJOR_VERSION
-#if (__cplusplus <= 199711L)
-#define constexpr
-#endif
-#endif
+#include "./my/my.h"
+#include <WINNT.H>
 
 namespace concurrent {
 
-static inline LONG safe_read_value(volatile LONG& value) MY_NO_EXCEPT {
-    return InterlockedExchangeAdd((LONG*)&value, 0);
+static inline long safe_read_value(volatile long& value) MY_NO_EXCEPT {
+
+    return InterlockedExchangeAdd((long*)&value, 0);
 }
 static inline ULONGLONG safe_read_value(
     volatile ULONGLONG& value) MY_NO_EXCEPT {
@@ -80,31 +55,26 @@ static inline ULONGLONG safe_write_value(
 #pragma warning(disable : 4197)
 template <typename T> class atomic_int {
     private:
-    volatile T m_val;
+    volatile ULONGLONG m_val;
 
     public:
     NO_COPY_CLASS(atomic_int);
 
-    explicit atomic_int() : m_val(0){};
-    atomic_int(T newval) : m_val(newval) {}
-    inline T get() const { return m_val; }
-    explicit operator T() const { return m_val; }
-    T operator==(const T value) const { return get() == value; }
-	    inline void setval(const T newval) {
-        safe_write_value((volatile T&)m_val, newval);
-        assert(newval == m_val);
-    }
+    explicit atomic_int() noexcept : m_val(0){};
+    atomic_int(T newval) noexcept : m_val(newval) {}
+    // inline T get() const { return (T)m_val; }
+
+    operator T() const noexcept { return (T)m_val; }
+
+    // T operator==(const T value) const noexcept{ return get() == value; }
+
+    inline void setval(const T v) { safe_write_value(m_val, v); }
+
     atomic_int& operator=(const T value) {
         setval(value);
         assert(m_val == value);
         return *this;
     }
-	/*/
-    atomic_int& operator+(const T value) {
-        ::InterlockedAdd64((LONGLONG*)m_val, value);
-        return *this;
-    }
-	/*/
 };
 
 #ifdef _DEBUG
@@ -477,21 +447,22 @@ template <typename CRTP> class thread {
 
 #define TEST_MY_CONCURRENT
 #ifdef TEST_MY_CONCURRENT
-#include <atomic>
+
 namespace test {
 
 static inline void test_atomic() {
     concurrent::atomic_int<LONG> myint = (LONG)0;
-	
+
     assert(myint == 0);
     myint = 77;
-	LONG i = myint.get();
+    LONG i = myint;
     assert(i == 77);
     assert(myint == 77);
-	 myint.setval(78);
-	//myint = myint + 1; <-- NOT atomic, even on std::atomic, so not included.
-	 assert(myint == 78);
-	
+    myint = 78;
+    // myint = myint + 1; <-- NOT atomic, even on std::atomic, so not included.
+    assert(myint == 78);
+    myint = -1;
+    assert(myint == -1);
 }
 
 class mythread : public concurrent::thread<mythread> {

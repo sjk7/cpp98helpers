@@ -3,10 +3,91 @@
 #ifndef MY_H_SJK_INCLUDED
 #define MY_H_SJK_INCLUDED
 
-#ifdef MY_H_SJK_SHOULD_INCLUDE_STDAFX
-#include "StdAfx.h"
+#ifdef FORCE_VC6_COMPILER
+#undef _MSC_VER
+#define _MSC_VER 1200
 #endif
+
+#if (_MSC_VER > 1899)
+#define MY_NO_EXCEPT noexcept
+
+#else
+
+#define MY_NO_EXCEPT
+#define noexcept
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4482) // non-standard enum use (qualified)
+#pragma warning(disable : 4355) // 'this' used in base member initializer list
+#endif
+#endif
+
+#ifdef _MSC_VER
+#if (_MSC_VER <= 1200)
+#define MSVC6
+
+#ifndef constexpr
+#define constexpr
+#endif
+
+#ifndef LONG
+#define LONG long
+#endif
+#endif
+#endif
+
+#ifdef __MINGW32_MAJOR_VERSION
+#if (__cplusplus <= 199711L)
+#define constexpr
+#endif
+#endif
+
+#if _MSC_VER <= 1200
+#define constexpr
+#include <stdlib.h>
+
+#include <climits>
+
+template <typename T> T swap_endian(T u) {
+    // static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+
+    union {
+        T u;
+        unsigned char u8[sizeof(T)];
+    } source, dest;
+
+    source.u = u;
+
+    for (size_t k = 0; k < sizeof(T); k++)
+        dest.u8[k] = source.u8[sizeof(T) - k - 1];
+
+    return dest.u;
+}
+
+static __forceinline unsigned long _byteswap_ulong(unsigned long val) {
+    return swap_endian(val);
+}
+
+#else
+#include <intrin.h>
+#endif
+
+#ifdef STEVE_SOURCE
+#ifndef MY_H_SJK_SHOULD_INCLUDE_STDAFX
+#define MY_H_SJK_SHOULD_INCLUDE_STDAFX
+#endif
+
+#ifdef MY_H_SJK_SHOULD_INCLUDE_STDAFX
+#ifndef STEVE_SOURCE
+#include <StdAfx.h>
+#else
+
+#endif
+#endif
+#endif
+
 #include <string>
+
 namespace my {
 
 template <typename T>
@@ -131,7 +212,7 @@ namespace numbers {
             return x;
         }
 #else
-#include "intrin.h"
+
         static inline unsigned long extract_i4(const unsigned char* const buf) {
             return _byteswap_ulong(*(unsigned long*)(buf));
         }

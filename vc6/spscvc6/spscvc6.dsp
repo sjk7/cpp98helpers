@@ -89,10 +89,32 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\my_thread_state_defs.cpp
+
+!IF  "$(CFG)" == "spscvc6 - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "spscvc6 - Win32 Debug"
+
+# ADD CPP /Yu"Stdafx.h"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\SPSCAudio.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\stdafx.cpp
+
+!IF  "$(CFG)" == "spscvc6 - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "spscvc6 - Win32 Debug"
+
+# ADD CPP /Yc
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -100,11 +122,19 @@ SOURCE=..\..\SPSCAudio.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=..\..\my\my.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\my_concurrent.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\my_spsc_buffer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\stdafx.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

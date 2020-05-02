@@ -3,6 +3,7 @@
 // Damn VC6 REQUIRES that static const class members are
 // declared in the header, but defined in a cpp file.
 ///////////////////////////////////////////////////////////
+#include "StdAfx.h"
 #include "../../my_concurrent.h"
 
 #ifdef MSVC6
